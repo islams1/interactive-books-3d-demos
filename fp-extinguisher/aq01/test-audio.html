@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AQ-01 hall audio test</title>
+<style>
+  :root { color-scheme: dark; }
+  body { background:#10161c; color:#dde6ee; font:14px/1.4 system-ui,sans-serif; margin:0; padding:16px; }
+  h1 { font-size:18px; margin:0 0 4px; }
+  p { color:#9fb0bf; margin:4px 0 12px; }
+  .row { display:flex; flex-wrap:wrap; gap:8px; margin:8px 0 16px; }
+  button { background:#1f3a52; color:#e8f1f8; border:1px solid #3b6a90; border-radius:6px; padding:8px 12px; font:inherit; cursor:pointer; }
+  button:hover { background:#27507a; }
+  label { display:flex; align-items:center; gap:6px; }
+  pre { background:#0a0f14; border:1px solid #243645; border-radius:6px; padding:10px; overflow:auto; font-size:12px; max-height:50vh; }
+  h2 { font-size:14px; margin:14px 0 4px; color:#8fc3e8; }
+</style>
+</head>
+<body>
+<h1>Still in Lane Four - hall audio test</h1>
+<p>Click once to start audio. Listener stands on the chair at (0, 2.5, -4) looking along +Z. Sounds are placed around the pool.</p>
+
+<div class="row">
+  <button id="start">Start audio + ambience</button>
+  <label><input type="checkbox" id="uw"> underwater</label>
+  <label>crowd <input type="range" id="crowd" min="0" max="1" step="0.05" value="0.6"></label>
+  <label>master <input type="range" id="vol" min="0" max="1" step="0.05" value="0.8"></label>
+</div>
+<h2>Sounds</h2>
+<div class="row" id="btns"></div>
+<h2>Offline checks</h2>
+<div class="row"><button id="run">Run offline analysis</button></div>
+<pre id="log">idle</pre>
+
+<script type="module">
+import { createHallAudio } from './audio.js';
+
+const log = document.getElementById('log');
+const errors = []; window.__errors = errors;
+window.addEventListener('error', (e) => errors.push(String(e.message)));
+window.addEventListener('unhandledrejection', (e) => errors.push('rej ' + e.reason));
+const origErr = console.error; console.error = (...a) => { errors.push(a.join(' ')); origErr(...a); };
+
+const LIS = { x: 0, y: 2.5, z: -4 }, FWD = { x: 0, y: 0, z: 1 }, UP = { x: 0, y: 1, z: 0 };
+const P = {
+  refNear: { x: 6, y: 1.6, z: 2 },       // referee on deck, ~8 m
+  refFar: { x: -20, y: 1.6, z: 16 },
+  start: { x: -25, y: 1.5, z: 0 },        // behind the blocks
+  lane: (x, z = 0) => ({ x, y: 0, z }),
+};
+
+let ctx, hall;
+const ensure = async () => {
+  if (!ctx) {
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    hall = createHallAudio(ctx);
+    hall.setListener(LIS, FWD, UP);
+    window.hall = hall; window.actx = ctx;
+  }
+  if (ctx.state !== 'running') await ctx.resume();
+  return hall;
+};
+const actions = {
+  'whistle short': (h) => h.whistle('short', P.refNear),
+  'whistle series': (h) => h.whistle('series', P.refNear),
+  'whistle long (lifeguard)': (h) => h.whistle('long', null),
+  'whistle far': (h) => h.whistle('short', P.refFar),
+  'start signal': (h) => h.startSignal(P.start),
+  'splash small': (h) => h.splash(P.lane(5, 6), 0.25),
+  'splash medium': (h) => h.splash(P.lane(-3, 5), 0.6),
+  'splash x10 (race)': (h) => { for (let i = 0; i < 10; i++) setTimeout(() => h.splash(P.lane(-10 + i * 3, 3 + (i % 4) * 2), 0.3 + Math.random() * 0.4), i * 90); },
+  'dive entry': (h) => h.diveEntry(P.lane(-23, 2)),
+  'big splash (jump in)': (h) => h.bigSplash(P.lane(3, 4)),
+  'cheer 0.8 / 5 s': (h) => h.cheer(0.8, 5),
+  'cheer 0.4 / 3 s': (h) => h.cheer(0.4, 3),
+  'announcer': (h) => h.announce(),
+  'laugh': (h) => h.laugh({ x: 12, y: 1.5, z: 15 }),
+  'shout': (h) => h.shout({ x: -10, y: 1.5, z: 16 }),
+  'bubbles 0.3': (h) => h.bubbles(0.3),
+  'bubbles 1': (h) => h.bubbles(1),
+};
+const btns = document.getElementById('btns');
+for (const [name, fn] of Object.entries(actions)) {
+  const b = document.createElement('button'); b.textContent = name;
+  b.onclick = async () => fn(await ensure());
+  btns.appendChild(b);
+}
+document.getElementById('start').onclick = async () => { const h = await ensure(); h.startAmbience(); };
+document.getElementById('uw').onchange = async (e) => (await ensure()).setUnderwater(e.target.checked);
+document.getElementById('crowd').oninput = async (e) => (await ensure()).setCrowd(+e.target.value);
+document.getElementById('vol').oninput = async (e) => (await ensure()).setMasterVolume(+e.target.value);
+// walk the listener around slowly so positional cues can be heard
+let ang = 0;
+setInterval(() => { if (!hall) return; ang += 0.02; hall.setListener(LIS, { x: Math.sin(ang * 0.5) * 0.7, y: 0, z: Math.cos(ang * 0.5) }, UP); }, 50);
+
+// ------------------------------------------------------------ offline analysis
+const SR = 32000;
+function fft(re, im) { // in-place radix-2
+  const n = re.length;
+  for (let i = 1, j = 0; i < n; i++) { let bit = n >> 1; for (; j & bit; bit >>= 1) j ^= bit; j ^= bit; if (i < j) { [re[i], re[j]] = [re[j], re[i]]; [im[i], im[j]] = [im[j], im[i]]; } }
+  for (let len = 2; len <= n; len <<= 1) {
+    const a = -2 * Math.PI / len, wr = Math.cos(a), wi = Math.sin(a);
+    for (let i = 0; i < n; i += len) { let cr = 1, ci = 0; for (let k = 0; k < len / 2; k++) {
+      const ur = re[i + k], ui = im[i + k], vr = re[i + k + len / 2] * cr - im[i + k + len / 2] * ci, vi = re[i + k + len / 2] * ci + im[i + k + len / 2] * cr;
+      re[i + k] = ur + vr; im[i + k] = ui + vi; re[i + k + len / 2] = ur - vr; im[i + k + len / 2] = ui - vi;
+      const t = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = t; } }
+  }
+}
+function spectrum(x, sr, from = 0, to = x.length, N = 4096) { // averaged power spectrum (Hann)
+  const bins = N / 2, acc = new Float64Array(bins); let cnt = 0;
+  const w = new Float64Array(N); for (let i = 0; i < N; i++) w[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / (N - 1));
+  for (let s = from; s + N <= to; s += N / 2) {
+    const re = new Float64Array(N), im = new Float64Array(N);
+    for (let i = 0; i < N; i++) re[i] = x[s + i] * w[i];
+    fft(re, im);
+    for (let k = 0; k < bins; k++) acc[k] += re[k] * re[k] + im[k] * im[k];
+    cnt++;
+  }
+  if (cnt) for (let k = 0; k < bins; k++) acc[k] /= cnt;
+  return { p: acc, df: sr / N };
+}
+const bandE = (sp, a, b) => { let e = 0; for (let k = Math.ceil(a / sp.df); k < Math.min(sp.p.length, b / sp.df); k++) e += sp.p[k]; return e; };
+const db = (v) => 20 * Math.log10(Math.max(v, 1e-9));
+
+function analyse(buf, name) {
+  const nCh = buf.numberOfChannels, len = buf.length, sr = buf.sampleRate;
+  const mono = new Float32Array(len); let peak = 0, nan = 0, sumsq = 0;
+  for (let c = 0; c < nCh; c++) { const d = buf.getChannelData(c);
+    for (let i = 0; i < len; i++) { const v = d[i]; if (!Number.isFinite(v)) { nan++; continue; } mono[i] += v / nCh; if (Math.abs(v) > peak) peak = Math.abs(v); sumsq += v * v; } }
+  const rms = Math.sqrt(sumsq / (len * nCh));
+  // loudest 0.4 s window RMS
+  const W = (0.4 * sr) | 0; let best = 0;
+  for (let s = 0; s + W <= len; s += W >> 2) { let e = 0; for (let i = s; i < s + W; i++) e += mono[i] * mono[i]; best = Math.max(best, e / W); }
+  // active duration: first/last time envelope above peak-40dB
+  const thr = peak * 0.01; let first = -1, last = -1;
+  for (let i = 0; i < len; i++) if (Math.abs(mono[i]) > thr) { if (first < 0) first = i; last = i; }
+  const sp = spectrum(mono, sr);
+  const tot = bandE(sp, 20, sr / 2) || 1;
+  const bands = { 'lt400': bandE(sp, 20, 400) / tot, '400-2k': bandE(sp, 400, 2000) / tot, '2k-5k': bandE(sp, 2000, 5000) / tot, 'gt5k': bandE(sp, 5000, sr / 2) / tot };
+  let pk = 0, pf = 0; for (let k = 3; k < sp.p.length; k++) if (sp.p[k] > pk) { pk = sp.p[k]; pf = k * sp.df; }
+  let cent = 0, ws = 0; for (let k = 1; k < sp.p.length; k++) { cent += k * sp.df * sp.p[k]; ws += sp.p[k]; }
+  const r = (v, n = 1) => +v.toFixed(n);
+  return { name, dur: r(len / sr, 2), activeMs: first < 0 ? 0 : Math.round((last - first) / sr * 1000), peakDb: r(db(peak)), rmsDb: r(db(rms)), loud04Db: r(db(Math.sqrt(best))),
+    nan, clipped: peak > 1, centroidHz: Math.round(cent / ws), peakHz: Math.round(pf),
+    bands: Object.fromEntries(Object.entries(bands).map(([k, v]) => [k, r(v * 100, 1) + '%'])) };
+}
+function warble(buf, from, to) { // dominant envelope-modulation rate 8..80 Hz
+  const sr = buf.sampleRate, d = buf.getChannelData(0), D = 16;
+  const m = Math.floor((to - from) / D), env = new Float64Array(m);
+  for (let i = 0; i < m; i++) { let s = 0; for (let j = 0; j < D; j++) s += Math.abs(d[from + i * D + j]); env[i] = s / D; }
+  let mean = 0; for (const v of env) mean += v; mean /= m; for (let i = 0; i < m; i++) env[i] -= mean;
+  const N = 4096, re = new Float64Array(N), im = new Float64Array(N);
+  for (let i = 0; i < Math.min(m, N); i++) re[i] = env[i] * (0.5 - 0.5 * Math.cos(2 * Math.PI * i / (Math.min(m, N) - 1)));
+  fft(re, im); const esr = sr / D; let bk = 0, bf = 0;
+  for (let k = 1; k < N / 2; k++) { const f = k * esr / N; if (f < 8 || f > 80) continue; const p = re[k] * re[k] + im[k] * im[k]; if (p > bk) { bk = p; bf = f; } }
+  return Math.round(bf * 10) / 10;
+}
+function wavB64(buf) {
+  const n = buf.length, nc = buf.numberOfChannels, sr = buf.sampleRate;
+  const out = new DataView(new ArrayBuffer(44 + n * nc * 2));
+  const w = (o, s) => { for (let i = 0; i < s.length; i++) out.setUint8(o + i, s.charCodeAt(i)); };
+  w(0, 'RIFF'); out.setUint32(4, 36 + n * nc * 2, true); w(8, 'WAVE'); w(12, 'fmt '); out.setUint32(16, 16, true); out.setUint16(20, 1, true);
+  out.setUint16(22, nc, true); out.setUint32(24, sr, true); out.setUint32(28, sr * nc * 2, true); out.setUint16(32, nc * 2, true); out.setUint16(34, 16, true);
+  w(36, 'data'); out.setUint32(40, n * nc * 2, true);
+  const ch = []; for (let c = 0; c < nc; c++) ch.push(buf.getChannelData(c));
+  let o = 44; for (let i = 0; i < n; i++) for (let c = 0; c < nc; c++) { out.setInt16(o, Math.max(-1, Math.min(1, ch[c][i])) * 32767, true); o += 2; }
+  const u = new Uint8Array(out.buffer); let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+
+// count nodes created during setup
+function countNodes(oc) {
+  const c = { n: 0 };
+  const proto = BaseAudioContext.prototype;
+  for (const k of Object.getOwnPropertyNames(proto)) {
+    if (/^create/.test(k) && k !== 'createBuffer') { const f = proto[k]; if (typeof f === 'function') oc[k] = function (...a) { c.n++; return f.apply(oc, a); }; }
+  }
+  return c;
+}
+async function render(name, dur, setup, wavs, wantWav) {
+  const oc = new OfflineAudioContext(2, (dur * SR) | 0, SR);
+  window.__prog = name + ":create"; const h = createHallAudio(oc, { autoEvents: false }); window.__prog = name + ":created";
+  h.setListener(LIS, FWD, UP);
+  const cnt = countNodes(oc);
+  setup(h);
+  const nodes = cnt.n;
+  window.__prog = name + ":render"; const buf = await oc.startRendering(); window.__prog = name + ":rendered";
+  window.__prog = name + ":analyse"; const a = analyse(buf, name); a.nodes = nodes;
+  if (wantWav) wavs[name] = wavB64(buf);
+  return { a, buf };
+}
+
+async function runOffline(wantWav, only) {
+  const wavs = {}, res = [], extra = {};
+  const T = [
+    ['whistle_short', 2, (h) => h.whistle('short', P.refNear, 0.1)],
+    ['whistle_series', 3, (h) => h.whistle('series', P.refNear, 0.1)],
+    ['whistle_long', 5, (h) => h.whistle('long', null, 0.1)],
+    ['whistle_far', 2.5, (h) => h.whistle('short', P.refFar, 0.1)],
+    ['start_signal', 2.5, (h) => h.startSignal(P.start, 0.1)],
+    ['splash_small', 1.2, (h) => h.splash(P.lane(5, 6), 0.25, 0.1)],
+    ['splash_medium', 1.2, (h) => h.splash(P.lane(-3, 5), 0.6, 0.1)],
+    ['splash_race', 4, (h) => { for (let i = 0; i < 40; i++) h.splash(P.lane(-12 + (i % 8) * 3, 3 + (i % 5) * 2), 0.3 + Math.random() * 0.4, 0.2 + i * 0.09); }],
+    ['dive_entry', 3, (h) => h.diveEntry(P.lane(-23, 2), 0.1)],
+    ['big_splash', 4, (h) => h.bigSplash(P.lane(3, 4), 0.1)],
+    ['cheer', 9, (h) => h.cheer(0.8, 4, 0.5)],
+    ['announcer', 7, (h) => { extra.annDur = h.announce(0.3); }],
+    ['laugh', 2.5, (h) => h.laugh({ x: 12, y: 1.5, z: 15 }, 0.1)],
+    ['shout', 2.5, (h) => h.shout({ x: -10, y: 1.5, z: 16 }, 0.1)],
+    ['bubbles', 3, (h) => h.bubbles(0.8, 0.1)],
+    ['ambience_bed', 10, (h) => { h.setCrowd(0.6); h.startAmbience(); }],
+    ['ambience_crowd0', 6, (h) => { h.setCrowd(0); h.startAmbience(); }],
+    ['ambience_crowd1', 6, (h) => { h.setCrowd(1); h.startAmbience(); }],
+    ['ambience_full_scene', 14, (h) => { h.setCrowd(0.6); h.startAmbience(); h.announce(2); h.whistle('series', P.refNear, 6); h.startSignal(P.start, 8.5); h.cheer(0.8, 3, 9); h.splash(P.lane(5, 6), 0.5, 5); }],
+    ['underwater_scene', 8, (h) => { h.setCrowd(0.6); h.startAmbience(); h.setUnderwater(true); h.splash(P.lane(5, 6), 0.6, 4); h.bubbles(0.8, 4.5); h.whistle('long', null, 5); }],
+  ];
+  for (const [name, dur, fn] of T) {
+    if (only && !only.test(name)) continue;
+    window.__prog = name;
+    const { a, buf } = await render(name, dur, fn, wavs, wantWav);
+    if (name === 'whistle_long') {
+      a.warbleHz = warble(buf, (0.5 * SR) | 0, (2.0 * SR) | 0);
+      const sp = spectrum(buf.getChannelData(0), SR, (0.3 * SR) | 0, (2.0 * SR) | 0);
+      a.whistle2500_4500 = (bandE(sp, 2500, 4500) / bandE(sp, 20, SR / 2) * 100).toFixed(1) + '%';
+    }
+    if (name === 'whistle_short') a.warbleHz = warble(buf, (0.15 * SR) | 0, (0.37 * SR) | 0);
+    if (name === 'underwater_scene') {
+      const d = buf.getChannelData(0), sp = spectrum(d, SR, (2 * SR) | 0, (4 * SR) | 0);
+      a.uw_energy_above600Hz = (bandE(sp, 600, SR / 2) / bandE(sp, 20, SR / 2) * 100).toFixed(2) + '%';
+      a.uw_energy_above1k = (bandE(sp, 1000, SR / 2) / bandE(sp, 20, SR / 2) * 100).toFixed(3) + '%';
+    }
+    if (name === 'announcer') { a.phraseSec = +extra.annDur.toFixed(2); const sp = spectrum(buf.getChannelData(0), SR, 0, buf.length);
+      a.annBand300_3400 = (bandE(sp, 300, 3400) / bandE(sp, 20, SR / 2) * 100).toFixed(1) + '%'; }
+    res.push(a);
+  }
+  return { res, wavs };
+}
+window.runOffline = runOffline;
+
+document.getElementById('run').onclick = async () => {
+  log.textContent = 'rendering...';
+  const { res } = await runOffline(false);
+  log.textContent = JSON.stringify(res, null, 1);
+};
+
+// ------------------------------------------------------------ automatic mode (headless check)
+const q = new URLSearchParams(location.search);
+if (q.get('triv')) { document.body.dataset.state='running'; (async()=>{ const t=performance.now(); const oc=new OfflineAudioContext(2,32000*2,32000); const o=oc.createOscillator(); o.connect(oc.destination); o.start(); await oc.startRendering(); window.__triv='plain '+(performance.now()-t); const t2=performance.now(); const oc2=new OfflineAudioContext(2,32000*2,32000); const h=createHallAudio(oc2,{autoEvents:false}); window.__triv2='created '+(performance.now()-t2); h.whistle('short',null,0.1); await oc2.startRendering(); window.__triv3='hall '+(performance.now()-t2); })(); }
+if (q.get('auto')) {
+  if (q.get('dbg')) setTimeout(() => { if (!window.__out) { window.__out = { stuck: window.__prog, errors }; document.body.dataset.state = 'done'; } }, 20000);
+  (async () => {
+    try {
+      const out = await runOffline(q.get('wav') === '1', q.get('only') ? new RegExp(q.get('only')) : null);
+      // realtime smoke test: every API call on a real AudioContext
+      const rt = new (window.AudioContext || window.webkitAudioContext)();
+      const h = createHallAudio(rt); h.setListener(LIS, FWD, UP); h.startAmbience(); h.setCrowd(0.7);
+      for (const fn of Object.values(actions)) fn(h);
+      h.setUnderwater(true); h.setUnderwater(false); h.setMasterVolume(0.5); h.suspend(); h.resume();
+      await new Promise((r) => setTimeout(r, 1500));
+      window.__out = { res: out.res, wavs: out.wavs, errors, rtState: rt.state, stats: h.stats() };
+    } catch (e) { window.__out = { fatal: String(e && e.stack || e), errors }; }
+    document.body.dataset.state = 'done';
+  })();
+} else document.body.dataset.state = 'ready';
+</script>
+</body>
+</html>

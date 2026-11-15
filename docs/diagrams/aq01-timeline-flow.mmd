@@ -1,0 +1,17 @@
+%% AQ-01 Still in Lane Four (phase 1), simplified. Full version: detailed/aq01-timeline-flow.mmd
+flowchart TD
+  A["Heat 3 swims"] --> B["T0: Rayan slips under - window glare on the water hides him from the seat"]
+  B --> C["T+20 a swimmer warns, T+60 the next heat dives in, T+120 a child screams"]
+  C --> D["T+170 the session ends"]
+  B -.-> W{"Learner blows the whistle"}
+  C -.-> W
+  W -->|"within 25 s"| O1["Saw him in time"]
+  W -->|"before the next heat dives"| O2["Stopped the start, late"]
+  W -->|"later"| O3["Not noticed in time"]
+  D --> O3
+  classDef good fill:#e6f4ea,stroke:#2f9e5b
+  classDef mid fill:#fff6e0,stroke:#d9822b
+  classDef bad fill:#fdecea,stroke:#cf4b4b
+  class O1 good
+  class O2 mid
+  class O3 bad

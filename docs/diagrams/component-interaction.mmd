@@ -1,0 +1,12 @@
+%% Simplified (SAF-01). Full version: detailed/component-interaction.mmd
+flowchart LR
+  IN["Keyboard and mouse"] --> H["Hands: take, pin, hose, spray"]
+  IN --> Q["Answer buttons"]
+  H --> F["Fire reacts"]
+  F -->|"fire out"| S["Story manager"]
+  Q --> S
+  S --> T["Characters speak: voice, lips, chat"]
+  S --> U["Screen: objective, questions, review"]
+  S --> W["Characters move in the world"]
+  classDef main fill:#e8f0fe,stroke:#4b6fd6
+  class S main

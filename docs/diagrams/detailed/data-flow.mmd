@@ -1,0 +1,23 @@
+%% Rendering and data flow of the CURRENT implementation (saf01.html; agr03.html is the same apart from the hands pass).
+flowchart TD
+  A["Page load - import map resolves three.js 0.170.0 from jsDelivr"] --> B["Module top level - renderer, scenes, cameras, lights, quality tier from ?q or localStorage fp-q"]
+  B --> C["Shed geometry built in code; Poly Haven textures via TextureLoader; HDRI via RGBELoader"]
+  C --> D["Sequential awaits: fonts, first-person hands, shed props glTF, Rocketbox workers FBX and clips, Renderpeople GLB with attachRP, voices manifest and mp3, extinguisher rack"]
+  D --> E["requestAnimationFrame loop - tick with dt capped at 0.05 s"]
+  E --> F["Update order: demo, player, pin, hands, fire, emotion, physics, hose, PASS aim, SAF queue, workers, Renderpeople bodies and faces, HUD every 3rd frame"]
+  F --> G["Pass 1: world scene"]
+  G --> H["Pass 2: splat figures - only with ?karim=scan, experimental"]
+  H --> I["Clear depth, Pass 3: hands scene with its own lights"]
+  I --> J["Pass 4: vignette and grain post shader - ?post=0 disables"]
+  J --> E
+  subgraph DATA["Static data fetched at boot"]
+    M1["assets/audio/saf01/manifest.json"]
+    M2["assets/audio/saf01 per-line mp3 and json letter timings"]
+    M3["assets/renderpeople glb and 2K jpg"]
+    M4["assets/anim Rocketbox fbx clips"]
+    M5["assets/polyhaven textures, models, HDRI"]
+  end
+  DATA --> D
+  subgraph AQ["AQ-01 difference - aq01.html"]
+    Q1["Refraction pass of the pool shell into a 0.6x render target, clipped at the water surface"] --> Q2["Main pass with the water shader"]
+  end

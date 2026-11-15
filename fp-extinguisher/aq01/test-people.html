@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AQ-01 people test</title>
+<style>
+  html,body{margin:0;height:100%;background:#9fb4c8;overflow:hidden;font:12px system-ui,sans-serif}
+  #hud{position:fixed;left:8px;top:6px;color:#012;background:#fffc;padding:3px 7px;border-radius:4px;pointer-events:none}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
+</head>
+<body>
+<div id="hud"></div>
+<script>window.onerror=(m)=>{window.__err=m};</script>
+<script type="module">
+import * as THREE from 'three';
+import { makeKid, makeAdult, makeCrowd, STATE_NAMES } from './people.js';
+
+const Q = new URLSearchParams(location.search);
+const RES = new Set(['state','t','frames','cam','kind','seed','d','cy','yaw','cols','sex','role','sp','h','w','ty','crowd','exc','height','build','cap','suit']);
+const extra = {};
+for (const [k, v] of Q) if (!RES.has(k)) extra[k] = v === 'true' ? true : v === 'false' ? false : (isNaN(+v) || v === '' ? v : +v);
+
+const W = +Q.get('w') || 1280, Hh = +Q.get('h') || 720;
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(W, Hh); renderer.setPixelRatio(1);
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0xa9c0d6);
+scene.add(new THREE.HemisphereLight(0xdfeaff, 0x6a7078, 1.5));
+const sun = new THREE.DirectionalLight(0xffffff, 2.4); sun.position.set(6, 12, 7); scene.add(sun);
+const fill = new THREE.DirectionalLight(0xbcd0ff, 0.7); fill.position.set(-6, 3, -8); scene.add(fill);
+
+// pool floor + water
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), new THREE.MeshStandardMaterial({ color: 0xcfe3ea, roughness: 0.9 }));
+floor.rotation.x = -Math.PI / 2; floor.position.y = -2.0; scene.add(floor);
+const grid = new THREE.GridHelper(300, 150, 0x6c8a98, 0x8aa6b2); grid.position.y = -1.99; scene.add(grid);
+const water = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), new THREE.MeshBasicMaterial({ color: 0x2c9fd0, transparent: true, opacity: 0.34, depthWrite: false, side: THREE.DoubleSide }));
+water.rotation.x = -Math.PI / 2; scene.add(water);
+
+const names = STATE_NAMES;
+let list = Q.get('state') === 'none' ? [] : (Q.get('state') ? Q.get('state').split(',') : names);
+const frames = Q.get('frames') ? Q.get('frames').split(',').map(Number) : null;
+const tFix = Q.has('t') ? +Q.get('t') : null;
+const kind = Q.get('kind') || 'kid';
+const seed = +Q.get('seed') || 3;
+const slots = [];
+
+const LAND = new Set(['stand','walk','standBehindBlock','blockReady','point','whistle','clipboard','sitHigh','crouchEdge']);
+const mats = {
+  deck: new THREE.MeshStandardMaterial({ color: 0xd9d4c8, roughness: 0.8 }),
+  wall: new THREE.MeshStandardMaterial({ color: 0xb8c7cf, roughness: 0.8 }),
+  block: new THREE.MeshStandardMaterial({ color: 0x3a3f46, roughness: 0.6 })
+};
+function box(w, h, d, x, y, z, m) { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y, z); return o; }
+
+function label(text) {
+  const c = document.createElement('canvas'); c.width = 256; c.height = 48; const g = c.getContext('2d');
+  g.fillStyle = 'rgba(255,255,255,.85)'; g.fillRect(0, 0, 256, 48); g.fillStyle = '#012'; g.font = 'bold 26px sans-serif'; g.textAlign = 'center'; g.fillText(text, 128, 34);
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false, transparent: true }));
+  s.scale.set(1.5, 0.28, 1); s.renderOrder = 10; return s;
+}
+
+const camPre0 = Q.get('cam') || 'x';
+const items = [];
+if (frames) for (const st of list) for (const f of frames) items.push({ st, t: f });
+else for (const st of list) items.push({ st, t: tFix });
+const cols = +Q.get('cols') || (frames ? frames.length : Math.min(items.length, list.length > 1 ? 7 : 1));
+const spacing = +Q.get('sp') || (list.length > 1 ? 3.0 : 2.6);
+const yawDisp = (Q.has('yaw') ? +Q.get('yaw') : (items.length > 1 ? 30 : 0)) * Math.PI / 180;
+
+items.forEach((it, i) => {
+  const col = i % cols, row = Math.floor(i / cols);
+  const slot = new THREE.Group(); if (camPre0 === 'side') slot.position.set(-row * 4.2, 0, (col - (cols - 1) / 2) * spacing); else slot.position.set((col - (cols - 1) / 2) * spacing, 0, row * 4.2); slot.rotation.y = yawDisp; scene.add(slot);
+  const opts = kind === 'adult'
+    ? { role: Q.get('role') || 'referee', sex: Q.get('sex') || 'm', seed: seed + i, height: +Q.get('height') || undefined }
+    : { cap: +('0x' + (Q.get('cap') || 'd8232a')), suit: +('0x' + (Q.get('suit') || '1c2f6b')), sex: Q.get('sex') || (i % 2 ? 'f' : 'm'), seed: seed + i, height: +Q.get('height') || (1.5 + 0.03 * (i % 4)), build: +Q.get('build') || (0.3 + 0.2 * (i % 3)) };
+  const p = kind === 'adult' ? makeAdult(opts) : makeKid(opts);
+  slot.add(p.root);
+  p.set(it.st, { blend: 0, ...extra });
+  const L = LAND.has(it.st);
+  if (L) {
+    slot.add(box(2.4, 0.3, 2.4, 0, 0.12 - 0.15, 0, mats.deck));
+    if (it.st === 'blockReady') slot.add(box(0.5, 0.75 - 0.12, 0.5, 0, 0.12 + (0.75 - 0.12) / 2, 0, mats.block));
+  }
+  slots.push({ p, slot, it });
+  const lbl = label(it.st + (it.t != null ? ' t=' + it.t : '')); lbl.position.set(0, L ? 2.5 : 2.4, 0); slot.add(lbl);
+  // scene props per state
+  if (it.st === 'holdWall' || it.st === 'climbOut') { slot.add(box(3, 2.6, 2.0, 0, 0.12 - 1.3, -0.38 - 1.0, mats.deck)); }
+  if (it.st === 'touchWall') slot.add(box(3, 2.6, 1, 0, -1.3 + 0.12, -p.touchDistance - 0.5, mats.deck));
+  if (it.st === 'backstrokeStart') { slot.add(box(3, 2.6, 1, 0, -1.3 + 0.12, p.wallOffset + 0.5, mats.deck)); slot.add(box(0.5, 0.06, 0.06, 0, 0.33, p.wallOffset - 0.05, mats.block)); }
+  if (it.st === 'sitHigh') slot.add(box(0.5, 0.06, 0.5, 0, 1.25 - 0.03, 0, mats.block));
+});
+
+function placeRoot({ p, it }, t) {
+  const st = it.st, D = p.D;
+  let y = 0;
+  if (LAND.has(st)) y = 0.12 + p.hipHeight;
+  if (st === 'blockReady') y = 0.75 + p.hipHeight;
+  if (st === 'sitHigh') y = 1.25 + p.sitHeight;
+  if (st === 'sink') y = -1.85 * Math.min(1, t / 9);
+  if (st === 'bottom') y = -2.0;
+  p.root.position.set(0, y, 0);
+  if (st === 'dive') { const c = p.diveCurve(t); p.root.position.set(0, 0.75 + 0.12 * 0 + p.hipHeight + c.up, -c.forward); }
+  if (st === 'backstrokeStart') { if (p.isLaunched || p.goTime !== null) { const c = p.launchCurve(t - p.goTime); p.root.position.set(0, c.up, -c.forward); } }
+  if (st === 'climbOut') { const c = p.climbCurve(t); p.root.position.set(0, c.up, -c.forward); }
+}
+
+const camPre = Q.get('cam') || (items.length > 1 ? 'three' : 'close');
+const camera = new THREE.PerspectiveCamera(camPre === 'three' ? 38 : 32, W / Hh, 0.1, 400);
+function aimCamera() {
+  const n = items.length, rows = Math.ceil(n / cols);
+  const cx = 0, cz = (rows - 1) * 2.1;
+  const gw = (cols - 1) * spacing + 3;
+  const tgtY = +Q.get('ty') || (n > 1 ? 0.2 : (list[0] && LAND.has(list[0]) ? 1.1 : -0.1));
+  const target = new THREE.Vector3(cx, tgtY, cz);
+  const D = +Q.get('d') || (n > 1 ? Math.max(14, gw * 1.15 + rows * 3) : (list[0] && LAND.has(list[0]) ? 6.2 : 5.5));
+  let pos;
+  switch (camPre) {
+    case 'side': pos = new THREE.Vector3(D, tgtY + 0.2, 0); target.x = 0; break;
+    case 'front': pos = new THREE.Vector3(0, tgtY + 0.6, cz - D); break;
+    case 'back': pos = new THREE.Vector3(0, tgtY + 0.6, cz + D); break;
+    case 'top': pos = new THREE.Vector3(0.001, D, cz + 0.001); break;
+    case 'three': pos = new THREE.Vector3(D * 0.5, 2.8 + (+Q.get('cy') || 0), cz + D * 0.85); break;
+    default: pos = new THREE.Vector3(D * 0.62, tgtY + 1.0 + (+Q.get('cy') || 0), cz - D * 0.55); // close, from front-right
+  }
+  camera.position.copy(pos); camera.lookAt(target);
+}
+aimCamera();
+
+let crowd = null;
+if (Q.has('crowd')) {
+  const seats = []; const rows = 6, per = 22;
+  for (let r = 0; r < rows; r++) for (let c = 0; c < per; c++) seats.push({ x: (c - (per - 1) / 2) * 0.55, y: 0.45 + 0.4 * r, z: 3 + r * 0.85, rotY: 0 });
+  crowd = makeCrowd({ seats, seed: 5 }); scene.add(crowd.object);
+  for (let r = 0; r < rows; r++) scene.add(box(14, 0.4 + 0.4 * r, 0.85, 0, (0.4 + 0.4 * r) / 2, 3 + r * 0.85, mats.block));
+  if (!items.length) { camera.position.set(+Q.get('cx') || 4, 3.0, -2.5); camera.lookAt(0, 2.0, 5); }
+}
+const hud = document.getElementById('hud');
+hud.textContent = (kind) + ' | ' + (Q.get('state') || 'all states') + (tFix != null ? ' t=' + tFix : ' (live)') + ' cam=' + camPre;
+let s0 = false; let last = performance.now(), clock = 0;
+function frame() {
+  const now = performance.now(), dt = Math.min(0.05, (now - last) / 1000); last = now; clock += dt;
+  for (const s of slots) {
+    const { p, it } = s;
+    if (it.t != null) { if (s.done !== it.t) { p.set(it.st, { blend: 0, ...extra }); if (it.st === 'backstrokeStart' && extra.go === undefined && it.t > 0.05) p.params.go = true; p.update(0); p.update(it.t); s.done = it.t; } }
+    else { if (it.st === 'backstrokeStart' && clock > 1.0) p.params.go = true; if (Q.get('then') && clock > 0.5 && !s.sw) { s.sw = 1; p.set(Q.get('then'), { blend: 0.4 }); } p.update(dt); }
+    placeRoot(s, p.t);
+  }
+  if (crowd) { const e = +Q.get('exc') || 0; if (tFix != null && !s0) { for (let i = 0; i < 40; i++) crowd.update(1 / 30, e); s0 = true; } else if (tFix == null) crowd.update(dt, e); }
+  renderer.render(scene, camera);
+  window.__ready = true; window.__frames = (window.__frames || 0) + 1; window.__info = JSON.stringify(renderer.info.render); hud.textContent = hud.textContent.split(' | calls')[0] + ' | calls ' + renderer.info.render.calls + ' tris ' + renderer.info.render.triangles;
+  if (tFix == null && !frames) requestAnimationFrame(frame);
+}
+window.__people = { slots, scene, camera, renderer };
+frame();
+</script>
+</body>
+</html>

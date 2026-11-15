@@ -1,0 +1,10 @@
+%% Simplified. Full version: detailed/system-architecture.mmd
+flowchart LR
+  A["Client brief"] --> B["AI coding assistant writes the game"]
+  B --> C["One HTML file per demo"]
+  D["3D models, textures, recorded voices"] --> E["Vercel hosting"]
+  C --> E
+  E --> F["Learner's browser runs everything"]
+  G["Three.js from a public CDN"] --> F
+  classDef main fill:#e8f0fe,stroke:#4b6fd6
+  class C,F main

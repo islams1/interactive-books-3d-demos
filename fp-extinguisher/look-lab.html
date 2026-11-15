@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Look Lab</title>
+<style>
+  :root { --bg: #1b1d21; --panel: rgba(20,22,26,.82); --fg: #eef0f3; --mut: #9aa0a8; --acc: #f08a3c; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font: 14px/1.4 system-ui, "Segoe UI", Tahoma, sans-serif; overflow: hidden; }
+  canvas { display: block; }
+  #ui { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;
+        background: var(--panel); padding: 8px; border-radius: 12px; max-width: calc(100vw - 32px); }
+  #ui button { background: #2b2f36; color: var(--fg); border: 1px solid #3a3f48; border-radius: 8px; padding: 6px 12px; cursor: pointer; font: inherit; }
+  #ui button.on { background: var(--acc); border-color: var(--acc); color: #1b1d21; }
+  #info { position: fixed; top: 16px; right: 16px; background: var(--panel); padding: 8px 12px; border-radius: 10px; color: var(--mut); font-size: 12px; max-width: calc(100vw - 32px); }
+</style>
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+}}
+</script>
+</head>
+<body>
+<div id="info">جاري التحميل…</div>
+<div id="ui"></div>
+<script type="module">
+/* LOOK LAB — the woman in a copy of the warehouse (same tone mapping, fog, lights, surfaces), drawn with the game's
+   splat renderer, plus the look upgrades as A/B switches:
+     ?mode=before  -> exactly what the game does now (live figure, skin grade .82/1.05, brightness .92, no relight, no fog)
+     ?mode=after   -> fig=look (restored body colours + normals/AO) + room relighting + fog + firmer body silhouette
+   single switches override the mode: relight, relightScan, ao, fog, crisp, ltint (light colour 0..1), sks, skg, bright, res (offscreen scale like the
+   game's adaptive resolution), fig, view (game|gamewide|front|q|side|back|facef|faceq), clip, t, gaze, only=scan|body */
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const params = new URLSearchParams(location.search), V3 = THREE.Vector3, Q4 = THREE.Quaternion;
+const MODE = params.get('mode') || 'after';
+const FIGNAME = params.has('fig') ? params.get('fig') : (MODE === 'after' ? 'look' : '');
+const FIG = 'assets/fullbody/' + (FIGNAME ? FIGNAME + '/' : '') + 'figure';
+const PRESET = { before: { relight: 0, relightScan: 0, ao: 0, fog: 0, crisp: 1, sks: .82, skg: 1.05, bright: .92, res: 1, ltint: 1 },
+                 after:  { relight: .55, relightScan: .25, ao: .5, fog: 1, crisp: 1.3, sks: 1, skg: 1, bright: 1, res: 1, ltint: 0 } };
+const LK = { ...PRESET[MODE] }; for (const k of Object.keys(LK)) if (params.has(k)) LK[k] = +params.get(k);
+const TINT = MODE === 'before' ? [1, .99, .97] : [1, 1, 1];
+const info = document.getElementById('info');
+const META = await (await fetch(FIG + '.json')).json();
+
+/* ---------------- renderer + the warehouse (copied from index.html) ---------------- */
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.autoClear = false;
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene(); const FOG = new THREE.Color(0x26252a);
+scene.background = FOG.clone(); scene.fog = new THREE.FogExp2(FOG.clone(), .012);
+const pmrem = new THREE.PMREMGenerator(renderer); scene.environment = pmrem.fromScene(new RoomEnvironment(), .04).texture; scene.environmentIntensity = .28;
+let seed = 1337;
+const rnd = () => { seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+function canvasTex(w, h, draw, repeat) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+  if (repeat) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(...repeat); }
+  return t;
+}
+function speckle(g, w, h, n, alpha, light) { for (let i = 0; i < n; i++) { const v = light ? 255 : 0; g.fillStyle = `rgba(${v},${v},${v},${rnd() * alpha})`; const s = rnd() * 2.2 + .4; g.fillRect(rnd() * w, rnd() * h, s, s); } }
+function blotches(g, w, h, n, col, alpha, rmax) { for (let i = 0; i < n; i++) { const x = rnd() * w, y = rnd() * h, r = rnd() * rmax + 10; const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, `rgba(${col},${alpha * rnd()})`); gr.addColorStop(1, `rgba(${col},0)`); g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2); } }
+const concreteTex = canvasTex(1024, 1024, (g, w, h) => {
+  g.fillStyle = '#8c8982'; g.fillRect(0, 0, w, h);
+  blotches(g, w, h, 70, '40,38,34', .16, 140); blotches(g, w, h, 50, '200,196,188', .1, 120);
+  speckle(g, w, h, 16000, .22, false); speckle(g, w, h, 9000, .18, true);
+  g.strokeStyle = 'rgba(40,38,35,.35)'; g.lineWidth = 2;
+  for (const p of [w / 2, w]) { g.beginPath(); g.moveTo(p - 1, 0); g.lineTo(p - 1, h); g.stroke(); g.beginPath(); g.moveTo(0, p - 1); g.lineTo(w, p - 1); g.stroke(); }
+  g.lineWidth = 1;
+  for (let i = 0; i < 9; i++) { let x = rnd() * w, y = rnd() * h; g.beginPath(); g.moveTo(x, y); for (let k = 0; k < 18; k++) { x += (rnd() - .5) * 26; y += (rnd() - .5) * 26; g.lineTo(x, y); } g.stroke(); }
+}, [5, 4]);
+const wallTex = canvasTex(512, 512, (g, w, h) => {
+  g.fillStyle = '#a8a59c'; g.fillRect(0, 0, w, h);
+  blotches(g, w, h, 30, '70,66,60', .12, 120); speckle(g, w, h, 5000, .12, false);
+  g.fillStyle = 'rgba(40,38,34,.35)'; for (let x = 0; x < w; x += w / 2) g.fillRect(x, 0, 3, h);
+  const gr = g.createLinearGradient(0, h * .82, 0, h); gr.addColorStop(0, 'rgba(50,45,40,0)'); gr.addColorStop(1, 'rgba(50,45,40,.45)'); g.fillStyle = gr; g.fillRect(0, h * .82, w, h * .18);
+}, [4, 1]);
+const std = (color, roughness = .8, metalness = 0, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness, metalness, ...extra });
+const box = (w, h, d) => new THREE.BoxGeometry(w, h, d);
+// the room is built in the game's own coordinates, then turned so that her spot by the exit door (-3.4, 4.9) is the
+// origin and she faces +z (towards the camera presets)
+const room = new THREE.Group(); room.rotation.y = Math.PI; room.position.set(-3.4, 0, 4.9); scene.add(room);
+function mk(geo, mat, p = [0, 0, 0], r = [0, 0, 0], shadow = true) { const m = new THREE.Mesh(geo, mat); m.position.set(...p); m.rotation.set(...r); m.castShadow = shadow; m.receiveShadow = true; room.add(m); return m; }
+const RW = 16, RD = 12, RH = 4.2;
+mk(new THREE.PlaneGeometry(RW, RD), std(0xffffff, .88, 0, { map: concreteTex }), [0, 0, 0], [-Math.PI / 2, 0, 0], false);
+mk(new THREE.PlaneGeometry(RW, RD), std(0x5d5c59, 1), [0, RH, 0], [Math.PI / 2, 0, 0], false);
+const wallMat = std(0xffffff, .92, 0, { map: wallTex }), wallMatS = wallMat.clone(); wallMatS.map = wallTex.clone(); wallMatS.map.repeat.set(3, 1); wallMatS.map.needsUpdate = true;
+mk(new THREE.PlaneGeometry(RW, RH), wallMat, [0, RH / 2, -RD / 2], [0, 0, 0], false);
+mk(new THREE.PlaneGeometry(RW, RH), wallMat, [0, RH / 2, RD / 2], [0, Math.PI, 0], false);
+mk(new THREE.PlaneGeometry(RD, RH), wallMatS, [-RW / 2, RH / 2, 0], [0, Math.PI / 2, 0], false);
+mk(new THREE.PlaneGeometry(RD, RH), wallMatS, [RW / 2, RH / 2, 0], [0, -Math.PI / 2, 0], false);
+const steelDark = std(0x2a2c30, .5, .6);
+mk(box(1.3, 2.3, .06), std(0x5f6670, .5, .5), [-2.2, 1.15, RD / 2 - .04]); mk(box(1.42, .08, .08), steelDark, [-2.2, 2.34, RD / 2 - .05]);
+mk(box(.6, .19, .01), new THREE.MeshBasicMaterial({ color: 0x1c9a4c }), [-2.2, 2.6, RD / 2 - .02], [0, 0, 0], false);
+mk(box(15.2, .004, .08), std(0xe3b21b, .6), [0, .002, .3], [0, 0, 0], false);
+const beamMat = std(0x44464a, .6, .4); for (const x of [-6, -2, 2, 6]) mk(box(.22, .38, RD), beamMat, [x, RH - .19, 0], [0, 0, 0], false);
+const lampMat = std(0xffffff, .4, 0, { emissive: 0xfff4e2, emissiveIntensity: 3 }), LAMPS = [];
+for (const [x, z] of [[-4, 2.6], [0, -2.8], [4, 2.6], [4, -2.8], [-4, -2.8], [0, 2.6]]) {
+  mk(box(1.3, .07, .26), std(0x2b2c2f, .6, .3), [x, RH - .42, z], [0, 0, 0], false); mk(box(1.2, .012, .18), lampMat, [x, RH - .46, z], [0, 0, 0], false);
+  const l = new THREE.PointLight(0xfff0dc, 9, 9, 1.6); l.position.set(x, RH - .6, z); room.add(l); LAMPS.push(l);
+}
+const hemi = new THREE.HemisphereLight(0xdfe4ea, 0x3b342b, .65); scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xfff1df, 1.15); sun.position.set(2.5, 9, 3.5); sun.target.position.set(0, 0, -1);
+sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -9, right: 9, top: 7, bottom: -7, near: 1, far: 20 }); sun.shadow.bias = -.0004;
+room.add(sun, sun.target);
+scene.updateMatrixWorld(true);
+const shadow = new THREE.Mesh(new THREE.CircleGeometry(.3, 32), new THREE.MeshBasicMaterial({ color: 0, transparent: true, opacity: .3, depthWrite: false }));
+shadow.rotation.x = -Math.PI / 2; shadow.position.y = .004; scene.add(shadow);
+
+const camera = new THREE.PerspectiveCamera(35, innerWidth / innerHeight, .05, 60);
+const ctl = new OrbitControls(camera, renderer.domElement); ctl.enableDamping = true;
+{ // views: game = the player's eye (1.65 m, fov 70) where the game screenshots stand; the rest are studio framings
+  const V = { game: [[-.8, 1.65, .85], [0, 1.45, 0], 70], gamewide: [[-2.2, 1.65, 2.3], [0, 1.0, 0], 70], front: [[0, 1.2, 3.6], [0, 1.0, 0], 35], q: [[2.3, 1.3, 2.8], [0, 1.0, 0], 35],
+    side: [[3.6, 1.2, 0], [0, 1.0, 0], 35], back: [[0, 1.25, -3.6], [0, 1.0, 0], 35], facef: [[0, 1.55, .95], [0, 1.5, 0], 35], faceq: [[.6, 1.55, .75], [0, 1.5, 0], 35] }[params.get('view') || 'game'];
+  camera.position.set(...V[0]); ctl.target.set(...V[1]); camera.fov = V[2]; camera.updateProjectionMatrix(); ctl.update();
+}
+
+/* ---------------- splats (the game's renderer) + look upgrades ---------------- */
+const _h2f = (() => { const t = new Float32Array(65536); for (let h = 0; h < 65536; h++) { const s = h & 0x8000 ? -1 : 1, e = (h >> 10) & 31, m = h & 1023; t[h] = s * (e === 0 ? m * 2 ** -24 : e === 31 ? (m ? NaN : Infinity) : (1 + m / 1024) * 2 ** (e - 15)); } return t; })();
+const FB_WORKER_SRC = `
+let D = null;
+const C1 = .4886025119029199, C2 = [1.0925484305920792, -1.0925484305920792, .31539156525252005, -1.0925484305920792, .5462742152960396],
+      C3 = [-.5900435899266435, 2.890611442640554, -.4570457994644658, .3731763325901154, -.4570457994644658, 1.445305721320277, -.5900435899266435];
+onmessage = e => {
+  const m = e.data;
+  if (m.init) { D = m; D.wpos = new Float32Array(D.N * 3); D.depth = new Float32Array(D.N); D.keys = new Uint16Array(D.N); D.counts = new Uint32Array(65536); D.pool = []; D.cpool = []; return; }
+  if (m.ret) D.pool.push(m.ret); if (m.cret) D.cpool.push(m.cret);
+  const { N, NS, pos, sIdx, sW, SH, base, wpos, depth, keys, counts } = D, { BM, bi, bii, ez, camL, G, withSH } = m;
+  const t0 = performance.now();
+  for (let i = 0; i < N; i++) {
+    const x0 = pos[i * 3], y0 = pos[i * 3 + 1], z0 = pos[i * 3 + 2];
+    const bx = bi[0] * x0 + bi[4] * y0 + bi[8] * z0 + bi[12], by = bi[1] * x0 + bi[5] * y0 + bi[9] * z0 + bi[13], bz = bi[2] * x0 + bi[6] * y0 + bi[10] * z0 + bi[14];
+    let X = 0, Y = 0, Z = 0;
+    for (let k = 0; k < 4; k++) { const w = sW[i * 4 + k]; if (!w) continue; const o = sIdx[i * 4 + k] * 16;
+      X += w * (BM[o] * bx + BM[o + 4] * by + BM[o + 8] * bz + BM[o + 12]); Y += w * (BM[o + 1] * bx + BM[o + 5] * by + BM[o + 9] * bz + BM[o + 13]); Z += w * (BM[o + 2] * bx + BM[o + 6] * by + BM[o + 10] * bz + BM[o + 14]); }
+    wpos[i * 3] = bii[0] * X + bii[4] * Y + bii[8] * Z + bii[12]; wpos[i * 3 + 1] = bii[1] * X + bii[5] * Y + bii[9] * Z + bii[13]; wpos[i * 3 + 2] = bii[2] * X + bii[6] * Y + bii[10] * Z + bii[14];
+  }
+  let mn = Infinity, mx = -Infinity;
+  for (let i = 0; i < N; i++) { const z = ez[0] * wpos[i * 3] + ez[1] * wpos[i * 3 + 1] + ez[2] * wpos[i * 3 + 2]; depth[i] = z; if (z < mn) mn = z; if (z > mx) mx = z; }
+  const sc = 65535 / (mx - mn || 1); counts.fill(0);                       // counting sort on 16-bit depth: far first
+  for (let i = 0; i < N; i++) { const k = ((depth[i] - mn) * sc) | 0; keys[i] = k; counts[k]++; }
+  for (let k = 0, acc = 0; k < 65536; k++) { const c = counts[k]; counts[k] = acc; acc += c; }
+  const idx = D.pool.pop() || new Float32Array(N);                     // recycled: no garbage, no GC pauses in the game
+  for (let i = 0; i < N; i++) idx[counts[keys[i]]++] = i;
+  let col = null;
+  if (withSH) {
+    col = D.cpool.pop() || new Uint8Array(NS * 4);
+    for (let i = 0; i < NS; i++) {
+      let dx = wpos[i * 3] - camL[0], dy = wpos[i * 3 + 1] - camL[1], dz = wpos[i * 3 + 2] - camL[2]; const l = Math.hypot(dx, dy, dz) || 1; dx /= l; dy /= l; dz /= l;
+      const x = G[0] * dx + G[3] * dy + G[6] * dz, y = G[1] * dx + G[4] * dy + G[7] * dz, z = G[2] * dx + G[5] * dy + G[8] * dz;
+      const xx = x * x, yy = y * y, zz = z * z;
+      const b0 = -C1 * y, b1 = C1 * z, b2 = -C1 * x, b3 = C2[0] * x * y, b4 = C2[1] * y * z, b5 = C2[2] * (2 * zz - xx - yy), b6 = C2[3] * x * z, b7 = C2[4] * (xx - yy),
+            b8 = C3[0] * y * (3 * xx - yy), b9 = C3[1] * x * y * z, b10 = C3[2] * y * (4 * zz - xx - yy), b11 = C3[3] * z * (2 * zz - 3 * xx - 3 * yy),
+            b12 = C3[4] * x * (4 * zz - xx - yy), b13 = C3[5] * z * (xx - yy), b14 = C3[6] * x * (xx - 3 * yy);
+      const o = i * 45;
+      for (let c = 0; c < 3; c++) {
+        const q = o + c * 15;
+        const s = SH[q] * b0 + SH[q + 1] * b1 + SH[q + 2] * b2 + SH[q + 3] * b3 + SH[q + 4] * b4 + SH[q + 5] * b5 + SH[q + 6] * b6 + SH[q + 7] * b7
+                + SH[q + 8] * b8 + SH[q + 9] * b9 + SH[q + 10] * b10 + SH[q + 11] * b11 + SH[q + 12] * b12 + SH[q + 13] * b13 + SH[q + 14] * b14;
+        const v = base[i * 4 + c] + s * 255; col[i * 4 + c] = v < 0 ? 0 : v > 255 ? 255 : v;
+      }
+      col[i * 4 + 3] = base[i * 4 + 3];
+    }
+  }
+  postMessage({ idx, col, ms: performance.now() - t0 }, col ? [idx.buffer, col.buffer] : [idx.buffer]);
+};`;
+
+// room lighting as the splats see it (world space): hemisphere + sun + the 6 ceiling lamps (same numbers as index.html)
+const LIGHT = (() => {
+  const lin = c => new V3(c.r, c.g, c.b);                                              // THREE.Color is linear already
+  const sky = lin(new THREE.Color(0xdfe4ea)), ground = lin(new THREE.Color(0x3b342b)), sunCol = lin(new THREE.Color(0xfff1df)).multiplyScalar(1.15), lampCol = lin(new THREE.Color(0xfff0dc));
+  const sunDir = new V3().setFromMatrixPosition(sun.matrixWorld).sub(new V3().setFromMatrixPosition(sun.target.matrixWorld)).normalize();
+  const lamps = LAMPS.map(l => new V3().setFromMatrixPosition(l.matrixWorld));
+  const E = (n, p) => {                                                                 // same formula as the shader
+    const e = ground.clone().lerp(sky, .5 + .5 * n.y).multiplyScalar(.65).addScaledVector(sunCol, Math.max(n.dot(sunDir), 0));
+    for (const L of lamps) { const l = L.clone().sub(p), d = l.length(), cut = Math.max(0, 1 - (d / 9) ** 4) ** 2; e.addScaledVector(lampCol, 9 * Math.max(n.dot(l.divideScalar(d)), 0) * cut / Math.max(d, .1) ** 1.6); }
+    return e;
+  };
+  // reference = average brightness over all directions at her chest: the shading averages ~1, tops brighter, undersides darker
+  let s = 0; const K = 160, p = new V3(0, 1.2, 0);
+  for (let i = 0; i < K; i++) { const y = 1 - 2 * (i + .5) / K, r = Math.sqrt(1 - y * y), t = i * 2.39996; const e = E(new V3(Math.cos(t) * r, y, Math.sin(t) * r), p); s += .2126 * e.x + .7152 * e.y + .0722 * e.z; }
+  return { sky, ground, sunCol, sunDir, lampCol, lamps, ref: s / K, E };
+})();
+async function loadFullFigure(basePath, skinned, boneRemap) {
+  const [buf, shb, skb, meta] = await Promise.all([`${basePath}.splat`, `${basePath}.sh`, `${basePath}.skin`, `${basePath}.json`].map((u, i) => fetch(u).then(r => i === 3 ? r.json() : r.arrayBuffer())));
+  const nrmBuf = await fetch(`${basePath}.nrm`).then(r => r.ok ? r.arrayBuffer() : null).catch(() => null);
+  const N = buf.byteLength / 40, dv = new DataView(buf), NS = meta.scan, TW = 2048, TH = Math.ceil(N / TW), TN = TW * TH;
+  const tc = new Float32Array(TN * 4), ta = new Float32Array(TN * 4), tb = new Float32Array(TN * 4), ti = new Float32Array(TN * 4), tw = new Float32Array(TN * 4), tcol = new Uint8Array(TN * 4), tn = new Uint8Array(TN * 4);
+  const pos = new Float32Array(N * 3), base = new Uint8Array(N * 4);
+  for (let i = 0; i < N; i++) {
+    const o = i * 40;
+    for (let k = 0; k < 3; k++) { pos[i * 3 + k] = tc[i * 4 + k] = dv.getFloat32(o + k * 4, true); ta[i * 4 + k] = dv.getFloat32(o + 12 + k * 4, true); tb[i * 4 + k] = dv.getFloat32(o + 24 + k * 4, true); }
+    for (let k = 0; k < 4; k++) base[i * 4 + k] = tcol[i * 4 + k] = dv.getUint8(o + 36 + k);
+  }
+  if (params.get('only') === 'scan') for (let i = NS; i < N; i++) tcol[i * 4 + 3] = 0;
+  if (params.get('only') === 'body') for (let i = 0; i < NS; i++) tcol[i * 4 + 3] = 0;
+  const hasN = !!nrmBuf && nrmBuf.byteLength === N * 4;
+  if (hasN) tn.set(new Uint8Array(nrmBuf)); else for (let i = 0; i < N; i++) { tn[i * 4 + 1] = 255; tn[i * 4 + 3] = 255; }
+  const hb = new Uint16Array(shb, 0, NS * 45), SH = new Float32Array(NS * 45); for (let i = 0; i < SH.length; i++) SH[i] = _h2f[hb[i]];
+  const raw = new Uint8Array(skb), sIdx = new Float32Array(N * 4), sW = new Float32Array(N * 4);
+  for (let i = 0; i < N; i++) { let s = 0; for (let k = 0; k < 4; k++) { ti[i * 4 + k] = sIdx[i * 4 + k] = boneRemap[raw[i * 8 + k]]; s += sW[i * 4 + k] = raw[i * 8 + 4 + k] / 255; } for (let k = 0; k < 4; k++) tw[i * 4 + k] = sW[i * 4 + k] /= s || 1; }
+  const tex = (data, type) => { const t = new THREE.DataTexture(data, TW, TH, THREE.RGBAFormat, type); t.minFilter = t.magFilter = THREE.NearestFilter; t.generateMipmaps = false; t.needsUpdate = true; return t; };
+  const T = { tCenter: tex(tc, THREE.FloatType), tCovA: tex(ta, THREE.FloatType), tCovB: tex(tb, THREE.FloatType), tSkinI: tex(ti, THREE.FloatType), tSkinW: tex(tw, THREE.FloatType), tColor: tex(tcol, THREE.UnsignedByteType), tNrm: tex(tn, THREE.UnsignedByteType) };
+  for (let k = 0; k < 3; k++) { const t = new Float32Array(TN * 4); for (let i = 0; i < NS; i++) for (let c = 0; c < 3; c++) t[i * 4 + c] = _h2f[hb[i * 45 + c * 15 + k]]; T['tSH' + k] = tex(t, THREE.FloatType); }
+  const g = new THREE.InstancedBufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array([-2, -2, 0, 2, -2, 0, 2, 2, 0, -2, 2, 0]), 3)); g.setIndex([0, 1, 2, 0, 2, 3]);
+  const orders = [0, 1].map(() => { const o = new THREE.InstancedBufferAttribute(Float32Array.from({ length: N }, (_, i) => i), 1); o.setUsage(THREE.DynamicDrawUsage); return o; });
+  let oi = 0; g.setAttribute('sidx', orders[0]); g.instanceCount = N;
+  const sk = skinned.skeleton;
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { uViewport: { value: new THREE.Vector2(1, 1) }, boneTexture: { value: null }, bindMatrix: { value: skinned.bindMatrix }, bindMatrixInverse: { value: skinned.bindMatrixInverse },
+      uBright: { value: LK.bright }, uTint: { value: new THREE.Color(...TINT) }, uSkinSat: { value: LK.sks }, uSkinGain: { value: LK.skg }, uG: { value: new THREE.Matrix3() }, uCamL: { value: new V3() }, uSH: { value: 1 },
+      uRelight: { value: hasN ? LK.relight : 0 }, uRelightScan: { value: hasN ? LK.relightScan : 0 }, uAO: { value: hasN ? LK.ao : 0 }, uCrisp: { value: LK.crisp }, uWarm: { value: LK.ltint },
+      uFog: { value: LK.fog }, uFogDen: { value: .012 }, uFogCol: { value: new V3(0x26 / 255, 0x25 / 255, 0x2a / 255) },
+      uSky: { value: LIGHT.sky }, uGround: { value: LIGHT.ground }, uSunCol: { value: LIGHT.sunCol }, uSunDir: { value: LIGHT.sunDir }, uLampCol: { value: LIGHT.lampCol }, uLamp: { value: LIGHT.lamps }, uERef: { value: LIGHT.ref },
+      ...Object.fromEntries(Object.entries(T).map(([k, v]) => [k, { value: v }])) },
+    vertexShader: `attribute float sidx; uniform vec2 uViewport; uniform sampler2D boneTexture; uniform mat4 bindMatrix, bindMatrixInverse;
+      uniform highp sampler2D tCenter, tCovA, tCovB, tSkinI, tSkinW, tSH0, tSH1, tSH2; uniform sampler2D tColor, tNrm; uniform mat3 uG; uniform vec3 uCamL; uniform float uSH;
+      uniform float uRelight, uRelightScan, uAO, uCrisp, uFog, uFogDen, uERef, uWarm; uniform vec3 uSky, uGround, uSunCol, uSunDir, uLampCol; uniform vec3 uLamp[6];
+      varying vec4 vCol; varying vec2 vPos; varying float vFog;
+      mat4 bone(float i){ int size = textureSize(boneTexture, 0).x; int j = int(i) * 4; int x = j % size; int y = j / size;
+        return mat4(texelFetch(boneTexture, ivec2(x, y), 0), texelFetch(boneTexture, ivec2(x + 1, y), 0), texelFetch(boneTexture, ivec2(x + 2, y), 0), texelFetch(boneTexture, ivec2(x + 3, y), 0)); }
+      void main(){
+        int id = int(sidx + .5); ivec2 uv = ivec2(id % ${TW}, id / ${TW});
+        vec3 center = texelFetch(tCenter, uv, 0).xyz, covA = texelFetch(tCovA, uv, 0).xyz, covB = texelFetch(tCovB, uv, 0).xyz;
+        vec4 skinI = texelFetch(tSkinI, uv, 0), skinW = texelFetch(tSkinW, uv, 0), rgba = texelFetch(tColor, uv, 0);
+        if (rgba.a < .004) { gl_Position = vec4(0., 0., 2., 1.); return; }
+        mat4 S = bindMatrixInverse * (bone(skinI.x) * skinW.x + bone(skinI.y) * skinW.y + bone(skinI.z) * skinW.z + bone(skinI.w) * skinW.w) * bindMatrix;
+        vec4 pL = S * vec4(center, 1.);
+        if (id < ${NS} && uSH > 0.) {
+          vec3 d = normalize(pL.xyz - uCamL) * uG;
+          rgba.rgb = clamp(rgba.rgb + .4886025 * (-d.y * texelFetch(tSH0, uv, 0).rgb + d.z * texelFetch(tSH1, uv, 0).rgb - d.x * texelFetch(tSH2, uv, 0).rgb), 0., 1.);
+        }
+        // LOOK: light her with the room (normal from the rigged proxy, carried by the skinning) + crevice / floor-contact occlusion
+        float rl = id < ${NS} ? uRelightScan : uRelight;
+        if (rl > 0. || uAO > 0.) {
+          vec4 nt = texelFetch(tNrm, uv, 0);
+          vec3 nW = normalize(mat3(modelMatrix) * (mat3(S) * (nt.xyz * 2. - 1.)));
+          vec3 pW = (modelMatrix * pL).xyz;
+          vec3 E = mix(uGround, uSky, .5 + .5 * nW.y) * .65 + uSunCol * max(dot(nW, uSunDir), 0.);
+          for (int k = 0; k < 6; k++) { vec3 l = uLamp[k] - pW; float dd = length(l); float cut = clamp(1. - pow(dd / 9., 4.), 0., 1.); E += uLampCol * 9. * max(dot(nW, l / dd), 0.) * cut * cut / pow(max(dd, .1), 1.6); }
+          vec3 Er = E / uERef; Er = mix(vec3(dot(Er, vec3(.2126, .7152, .0722))), Er, uWarm);   // the lamps' warmth, only partly (her colours already carry warm light)
+          vec3 f = clamp(mix(vec3(1.), Er, rl), .55, 1.5);
+          float ao = mix(1., nt.w, uAO) * mix(1., .78 + .22 * smoothstep(0., .12, pW.y), uAO);
+          rgba.rgb = pow(pow(rgba.rgb, vec3(2.2)) * f * ao, vec3(1. / 2.2));
+        }
+        if (id >= ${NS}) rgba.a = 1. - pow(1. - rgba.a, uCrisp);       // LOOK: firmer body silhouette (less see-through haze)
+        vec4 cam = viewMatrix * (modelMatrix * pL); vec4 clip = projectionMatrix * cam;
+        float lim = 1.2 * clip.w;
+        if (cam.z > -.01 || abs(clip.x) > lim || abs(clip.y) > lim) { gl_Position = vec4(0., 0., 2., 1.); return; }
+        float z = -cam.z; vec2 f2 = vec2(projectionMatrix[0][0], projectionMatrix[1][1]) * uViewport * .5;
+        mat3 J = mat3(f2.x / z, 0., 0.,  0., f2.y / z, 0.,  f2.x * cam.x / (z * z), f2.y * cam.y / (z * z), 0.);
+        mat3 W = mat3(viewMatrix) * mat3(modelMatrix) * mat3(S);
+        mat3 V = mat3(covA.x, covA.y, covA.z,  covA.y, covB.x, covB.y,  covA.z, covB.y, covB.z);
+        mat3 Tm = J * W; mat3 c2 = Tm * V * transpose(Tm);
+        float a = c2[0][0] + .3, b = c2[0][1], d = c2[1][1] + .3;
+        float mid = .5 * (a + d), rad = length(vec2(.5 * (a - d), b));
+        float l1 = mid + rad, l2 = max(mid - rad, .1);
+        vec2 dir = normalize(vec2(b, l1 - a) + vec2(1e-6, 0.));
+        vec2 maj = min(sqrt(2. * l1), 1024.) * dir, mnr = min(sqrt(2. * l2), 1024.) * vec2(dir.y, -dir.x);
+        float r = min(2., sqrt(max(0., log(255. * rgba.a)))); if (r < .2) { gl_Position = vec4(0., 0., 2., 1.); return; }
+        vec2 qp = position.xy * (r * .5);
+        vCol = rgba; vPos = qp; vFog = uFog > 0. ? 1. - exp(-uFogDen * uFogDen * z * z) : 0.;
+        gl_Position = vec4(clip.xy / clip.w + (qp.x * maj + qp.y * mnr) / uViewport * 2., clip.z / clip.w, 1.);
+      }`,
+    fragmentShader: `uniform float uBright, uSkinSat, uSkinGain; uniform vec3 uTint, uFogCol; varying vec4 vCol; varying vec2 vPos; varying float vFog;
+      void main(){ float A = -dot(vPos, vPos); if (A < -4.) discard; float B = exp(A) * vCol.a;
+        vec3 c = vCol.rgb;
+        float sk = smoothstep(.04, .14, c.r - c.b) * smoothstep(-.02, .06, c.r - c.g) * smoothstep(.15, .3, c.r);
+        float l = dot(c, vec3(.299, .587, .114));
+        c = mix(c, clamp(mix(vec3(l), c, uSkinSat) * uSkinGain, 0., 1.), sk);
+        c = mix(c * uTint * uBright, uFogCol, vFog);
+        gl_FragColor = vec4(c * B, B); }`,
+    transparent: true, depthWrite: false, depthTest: true, side: THREE.DoubleSide,
+    blending: THREE.CustomBlending, blendSrc: THREE.OneFactor, blendDst: THREE.OneMinusSrcAlphaFactor,
+  });
+  const mesh = new THREE.Mesh(g, mat); mesh.frustumCulled = false; mesh.renderOrder = 5; mesh.matrixAutoUpdate = false;
+  const posM = pos.slice(), sIdxM = sIdx.slice(), sWM = sW.slice();                 // main-thread copies: a synchronous sort for the first frames
+  const worker = new Worker(URL.createObjectURL(new Blob([FB_WORKER_SRC], { type: 'text/javascript' })));
+  worker.postMessage({ init: true, N, NS, pos, sIdx, sW, SH, base }, [pos.buffer, sIdx.buffer, sW.buffer, SH.buffer]);
+  const BM = sk.boneMatrices, R = meta.R, Rs = meta.Rs || [[1, 0, 0], [0, 1, 0], [0, 0, 1]], HI = sk.bones.findIndex(b => /Head$/.test(b.name));
+  const inv = new THREE.Matrix4(), mv = new THREE.Matrix4(), _S = new THREE.Matrix4(), _r = new THREE.Matrix3();
+  function headFrame() {
+    _S.fromArray(BM, HI * 16).premultiply(skinned.bindMatrixInverse).multiply(skinned.bindMatrix); _r.setFromMatrix4(_S);
+    const e = _r.elements, c = [0, 1, 2].map(j => Math.hypot(e[j * 3], e[j * 3 + 1], e[j * 3 + 2]) || 1);
+    const r = [0, 1, 2].map(i => [0, 1, 2].map(j => e[j * 3 + i] / c[j]));
+    const mul = (P, Q) => P.map(row => [0, 1, 2].map(j => row[0] * Q[0][j] + row[1] * Q[1][j] + row[2] * Q[2][j]));
+    return mul(mul(r, Rs), R).flat();
+  }
+  let busy = false; const back = { ret: null };
+  worker.onmessage = e => { const { idx } = e.data; busy = false; oi ^= 1; orders[oi].array.set(idx); orders[oi].needsUpdate = true; g.setAttribute('sidx', orders[oi]); back.ret = idx; };
+  mesh.userData.sort = cam => {
+    if (busy) return false; busy = true;
+    mv.multiplyMatrices(cam.matrixWorldInverse, mesh.matrixWorld); const e = mv.elements;
+    worker.postMessage({ BM: BM.slice(), bi: skinned.bindMatrix.elements.slice(), bii: skinned.bindMatrixInverse.elements.slice(), ez: [e[2], e[6], e[10]], camL: [0, 0, 0], G: null, withSH: false, ret: back.ret, cret: null }, back.ret ? [back.ret.buffer] : []); back.ret = null;
+    return true;
+  };
+  const wposM = new Float32Array(N * 3), depthM = new Float32Array(N), keysM = new Uint16Array(N), countsM = new Uint32Array(65536);
+  mesh.userData.sortNow = cam => {                     // same as the worker, on the main thread (deterministic screenshots)
+    const BMv = BM, bi = skinned.bindMatrix.elements, bii = skinned.bindMatrixInverse.elements;
+    for (let i = 0; i < N; i++) {
+      const x0 = posM[i * 3], y0 = posM[i * 3 + 1], z0 = posM[i * 3 + 2];
+      const bx = bi[0] * x0 + bi[4] * y0 + bi[8] * z0 + bi[12], by = bi[1] * x0 + bi[5] * y0 + bi[9] * z0 + bi[13], bz = bi[2] * x0 + bi[6] * y0 + bi[10] * z0 + bi[14];
+      let X = 0, Y = 0, Z = 0;
+      for (let k = 0; k < 4; k++) { const w = sWM[i * 4 + k]; if (!w) continue; const o = sIdxM[i * 4 + k] * 16;
+        X += w * (BMv[o] * bx + BMv[o + 4] * by + BMv[o + 8] * bz + BMv[o + 12]); Y += w * (BMv[o + 1] * bx + BMv[o + 5] * by + BMv[o + 9] * bz + BMv[o + 13]); Z += w * (BMv[o + 2] * bx + BMv[o + 6] * by + BMv[o + 10] * bz + BMv[o + 14]); }
+      wposM[i * 3] = bii[0] * X + bii[4] * Y + bii[8] * Z + bii[12]; wposM[i * 3 + 1] = bii[1] * X + bii[5] * Y + bii[9] * Z + bii[13]; wposM[i * 3 + 2] = bii[2] * X + bii[6] * Y + bii[10] * Z + bii[14];
+    }
+    mv.multiplyMatrices(cam.matrixWorldInverse, mesh.matrixWorld); const e = mv.elements; let mn = Infinity, mx = -Infinity;
+    for (let i = 0; i < N; i++) { const z = e[2] * wposM[i * 3] + e[6] * wposM[i * 3 + 1] + e[10] * wposM[i * 3 + 2]; depthM[i] = z; if (z < mn) mn = z; if (z > mx) mx = z; }
+    const sc = 65535 / (mx - mn || 1); countsM.fill(0);
+    for (let i = 0; i < N; i++) { const k = ((depthM[i] - mn) * sc) | 0; keysM[i] = k; countsM[k]++; }
+    for (let k = 0, acc = 0; k < 65536; k++) { const c = countsM[k]; countsM[k] = acc; acc += c; }
+    oi ^= 1; const arr = orders[oi].array; for (let i = 0; i < N; i++) arr[countsM[keysM[i]]++] = i;
+    orders[oi].needsUpdate = true; g.setAttribute('sidx', orders[oi]);
+  };
+  mesh.userData.shade = cam => { const G = headFrame(); mat.uniforms.uG.value.set(...G); mat.uniforms.uCamL.value.setFromMatrixPosition(cam.matrixWorld).applyMatrix4(inv.copy(mesh.matrixWorld).invert()); };
+  mesh.userData.N = N; mesh.userData.meta = meta; mesh.userData.hasN = hasN;
+  return mesh;
+}
+
+/* the game's adaptive resolution, fixed here with ?res= : her splats drawn smaller, depth-tested against the room, blended back */
+const FBR = { rt: null, scale: LK.res, scene: new THREE.Scene(), depthMat: new THREE.MeshBasicMaterial({ colorWrite: false }) };
+FBR.comp = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), new THREE.ShaderMaterial({ uniforms: { tMap: { value: null }, uTexel: { value: new THREE.Vector2() }, uSharp: { value: 0 } },
+  vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0., 1.); }',
+  fragmentShader: `uniform sampler2D tMap; uniform vec2 uTexel; uniform float uSharp; varying vec2 vUv;
+    void main(){ vec4 c = texture2D(tMap, vUv);
+      if (uSharp > 0.) { vec4 a = texture2D(tMap, vUv + vec2(uTexel.x, 0.)), b = texture2D(tMap, vUv - vec2(uTexel.x, 0.)), d = texture2D(tMap, vUv + vec2(0., uTexel.y)), e = texture2D(tMap, vUv - vec2(0., uTexel.y));
+        float inner = smoothstep(.9, 1., min(min(a.a, b.a), min(d.a, e.a))); c.rgb = clamp(c.rgb + uSharp * inner * (4. * c.rgb - a.rgb - b.rgb - d.rgb - e.rgb), 0., c.a); }
+      gl_FragColor = c; }`,
+  depthTest: false, depthWrite: false, transparent: true, toneMapped: false, blending: THREE.CustomBlending, blendSrc: THREE.OneFactor, blendDst: THREE.OneMinusSrcAlphaFactor }));
+FBR.comp.frustumCulled = false; FBR.compScene = new THREE.Scene(); FBR.compScene.add(FBR.comp); FBR.compCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+function fbResize(fig) {
+  const s = renderer.getDrawingBufferSize(new THREE.Vector2()), w = Math.max(64, Math.round(s.x * FBR.scale)), h = Math.max(64, Math.round(s.y * FBR.scale));
+  if (!FBR.rt) { FBR.rt = new THREE.WebGLRenderTarget(w, h, { depthBuffer: true }); FBR.rt.texture.minFilter = FBR.rt.texture.magFilter = THREE.LinearFilter; } else FBR.rt.setSize(w, h);
+  FBR.comp.material.uniforms.tMap.value = FBR.rt.texture; FBR.comp.material.uniforms.uTexel.value.set(1 / w, 1 / h); FBR.comp.material.uniforms.uSharp.value = FBR.scale < .95 ? (1 - FBR.scale) * .55 : 0;
+  fig.material.uniforms.uViewport.value.set(w, h);
+}
+
+/* ---------------- Rocketbox mocap -> Mixamo skeleton (world-space rotation deltas from the rest poses) ---------------- */
+const MAP = { Pelvis: 'Hips', Spine: 'Spine', Spine1: 'Spine1', Spine2: 'Spine2', Neck: 'Neck', Head: 'Head',
+  L_Clavicle: 'LeftShoulder', L_UpperArm: 'LeftArm', L_Forearm: 'LeftForeArm', L_Hand: 'LeftHand',
+  R_Clavicle: 'RightShoulder', R_UpperArm: 'RightArm', R_Forearm: 'RightForeArm', R_Hand: 'RightHand',
+  L_Thigh: 'LeftUpLeg', L_Calf: 'LeftLeg', L_Foot: 'LeftFoot', L_Toe0: 'LeftToeBase',
+  R_Thigh: 'RightUpLeg', R_Calf: 'RightLeg', R_Foot: 'RightFoot', R_Toe0: 'RightToeBase' };
+const CLIPS = [
+  { id: 'f_idle_neutral_02', label: 'وقفة طبيعية', src: 'assets/fullbody/anim/f_idle_neutral_02.fbx' },
+  { id: 'm_idle_look_around_01', label: 'تبص حواليها', src: 'assets/anim/m_idle_look_around_01.fbx' },
+  { id: 'm_idle_nervous_03', label: 'متوترة', src: 'assets/anim/m_idle_nervous_03.fbx' },
+  { id: 'f_gestic_listen_accept_03', label: 'بتسمع وبتهز راسها', src: 'assets/fullbody/anim/f_gestic_listen_accept_03.fbx' },
+  { id: 'f_walk_neutral_01', label: 'مشي', src: 'assets/fullbody/anim/f_walk_neutral_01.fbx', walk: true },
+  { id: 'm_walk_neutral_01', label: 'مشي ٢', src: 'assets/anim/m_walk_neutral_01.fbx', walk: true },
+];
+const quiet = new THREE.LoadingManager(); quiet.setURLModifier(u => /\.(tga|png|jpg)$/i.test(u) ? 'data:,' : u);
+
+const [proxy, src] = await Promise.all([
+  new FBXLoader(quiet).loadAsync(META.proxy || 'assets/fullbody/LHM500M_woman-photoreal_proxy.fbx'),
+  new FBXLoader(quiet).loadAsync('assets/Construction_Female_01/Construction_Female_01.fbx'),
+]);
+proxy.scale.setScalar(.01); src.scale.setScalar(.01);
+let skinned = null; proxy.traverse(o => { if (o.isSkinnedMesh) skinned = o; });
+skinned.visible = params.has('proxy'); if (skinned.visible) skinned.material = new THREE.MeshStandardMaterial({ color: 0x88aacc, wireframe: true });
+src.visible = params.has('src'); src.position.x = 1.2;
+scene.add(proxy, src);
+// stand her on the floor
+proxy.updateMatrixWorld(true); skinned.geometry.computeBoundingBox();
+const bb = skinned.geometry.boundingBox.clone().applyMatrix4(skinned.matrixWorld); proxy.position.y = -bb.min.y; proxy.updateMatrixWorld(true);
+src.updateMatrixWorld(true);
+
+const tBones = {}; skinned.skeleton.bones.forEach(b => tBones[b.name.replace(/^mixamorig:?/, '')] = b);
+const sBones = {}; src.traverse(o => { if (o.isBone) sBones[o.name.replace(/^Bip01_?/, '')] = o; });
+const pairs = Object.entries(MAP).filter(([s, t]) => sBones[s] && tBones[t]).map(([s, t]) => ({ s: sBones[s], t: tBones[t] }));
+console.log('retarget pairs', pairs.length, 'missing', Object.entries(MAP).filter(([s, t]) => !sBones[s] || !tBones[t]).map(p => p.join('->')).join(', '));
+const wq = o => o.getWorldQuaternion(new Q4());
+for (const p of pairs) { p.sRest = wq(p.s); p.tRest = wq(p.t); p.C = new Q4(); }
+// rest-pose correction: Rocketbox stands in an A-pose, the Mixamo proxy in a T-pose. For each limb bone, C turns the
+// source's rest bone direction onto the target's, so the target copies the source's actual bone directions.
+const CHILD = { L_Clavicle: 'L_UpperArm', L_UpperArm: 'L_Forearm', L_Forearm: 'L_Hand', R_Clavicle: 'R_UpperArm', R_UpperArm: 'R_Forearm', R_Forearm: 'R_Hand',
+  L_Thigh: 'L_Calf', L_Calf: 'L_Foot', R_Thigh: 'R_Calf', R_Calf: 'R_Foot', Spine: 'Spine1', Spine1: 'Spine2', Spine2: 'Neck', Neck: 'Head' };
+const wp = o => o.getWorldPosition(new V3());
+for (const p of pairs) {
+  const sk = Object.keys(MAP).find(k => sBones[k] === p.s);
+  const HANDC = { L_Hand: ['L_Finger2', 'LeftHandIndex1'], R_Hand: ['R_Finger2', 'RightHandIndex1'], L_Foot: ['L_Toe0', 'LeftToeBase'], R_Foot: ['R_Toe0', 'RightToeBase'] };
+  const sc = HANDC[sk] ? sBones[HANDC[sk][0]] : sBones[CHILD[sk]], tc = HANDC[sk] ? tBones[HANDC[sk][1]] : tBones[MAP[CHILD[sk]]];
+  if (!sc || !tc) continue;
+  const ds = wp(sc).sub(wp(p.s)).normalize(), dt = wp(tc).sub(wp(p.t)).normalize();
+  p.C.setFromUnitVectors(ds, dt);
+}
+const hipsT = tBones.Hips, hipsS = sBones.Pelvis;
+const hipRestT = hipsT.getWorldPosition(new V3()), hipRestS = hipsS.getWorldPosition(new V3());
+const hipScale = (hipRestT.y - proxy.position.y * 0) / Math.max(hipRestS.y, 1e-3);
+const restLocalHips = hipsT.position.clone();
+
+const mixer = new THREE.AnimationMixer(src); const clipCache = {}; let current = null, curDef = null;
+const srcNames = new Set(Object.keys(sBones).map(k => 'Bip01' + (k ? '_' + k : '')));
+async function play(def) {
+  if (!clipCache[def.id]) {
+    const a = await new FBXLoader(quiet).loadAsync(def.src), c = a.animations[0];
+    const keep = c.tracks.filter(t => { const [node, prop] = t.name.split('.'); return srcNames.has(node) && (prop === 'quaternion' || (node === 'Bip01_Pelvis' && prop === 'position')); });
+    clipCache[def.id] = new THREE.AnimationClip(def.id, c.duration, keep);
+  }
+  const act = mixer.clipAction(clipCache[def.id]); act.reset().play();
+  if (current && current !== act) act.crossFadeFrom(current, .4, false);
+  current = act; curDef = def;
+  document.querySelectorAll('#ui button').forEach(b => b.classList.toggle('on', b.dataset.id === def.id));
+}
+const _q = new Q4(), _pq = new Q4(), _cq = new Q4(), _v = new V3();
+function retarget() {
+  if (params.has('rest')) return;
+  src.updateMatrixWorld(true);
+  for (const p of pairs) {                                  // parents first (MAP order follows the hierarchy)
+    _q.copy(wq(p.s)).multiply(_pq.copy(p.sRest).invert()).multiply(_cq.copy(p.C).invert()).multiply(p.tRest);   // source bone direction, carried onto the target's rest
+    p.t.parent.getWorldQuaternion(_pq).invert(); p.t.quaternion.copy(_pq.multiply(_q));
+    p.t.updateMatrixWorld(true);
+  }
+  // hips: vertical + small sway follow the mocap, scaled to her leg length; the walk stays on the spot
+  const d = hipsS.getWorldPosition(_v).sub(hipRestS).multiplyScalar(hipScale);
+  if (curDef?.walk) { d.x = 0; d.z = 0; }
+  else { d.x = THREE.MathUtils.clamp(d.x, -.06, .06); d.z = THREE.MathUtils.clamp(d.z, -.06, .06); }
+  const wp = hipRestT.clone().add(d); hipsT.parent.worldToLocal(wp); hipsT.position.copy(wp);
+  proxy.updateMatrixWorld(true);
+}
+
+/* ---------------- her head: looks at you, glances left/right the way people do ----------------
+   Target = you (the camera). Every few seconds she glances away to one side, then comes back to you — or straight back
+   to you as soon as you move. The turn is shared ~40% neck / 60% head, starts quick and lands softly (critically damped),
+   tilts a little into the turn and dips slightly while moving, plus a slow breathing drift. */
+const PB = n => pairs.find(p => p.t === tBones[n]);
+const headB = tBones.Head, neckB = tBones.Neck, chestB = tBones.Spine2;
+const headRest = PB('Head').tRest.clone(), neckRest = PB('Neck').tRest.clone(), chestRest = PB('Spine2').tRest.clone();
+const LOOK_W = { m_idle_look_around_01: .25 };                 // that clip turns her head by itself
+const FORCE = params.get('gaze');                               // screenshots: ?gaze=you | <yaw radians>
+const gaze = { y: 0, p: 0, vy: 0, vp: 0, goalY: 0, goalP: 0, pendY: 0, pendP: 0, react: 0, mode: 'you', t: 0, next: 3 + Math.random() * 3, gy: 0, gp: 0, w: 0, lastCam: camera.position.clone() };
+const P0 = +(params.get('p0') ?? .07);                            // her neutral head was a little chin-up
+const _B = new Q4(), _Bi = new Q4(), _d = new V3(), _hp = new V3(), _R = new Q4(), _Rn = new Q4(), _e = new THREE.Euler(0, 0, 0, 'YXZ'), _w1 = new Q4(), _w2 = new Q4(), _pw = new Q4();
+function spring(x, v, target, w, dt) { const a = w * w * (target - x) - 2 * w * v; v += a * dt; return [x + v * dt, v]; }
+function lookUpdate(dt) {
+  if (params.has('nolook')) return;
+  const g = gaze; g.t += dt;
+  _B.copy(wq(chestB)).multiply(_Bi.copy(chestRest).invert());                       // how her chest has turned since rest
+  headB.getWorldPosition(_hp);
+  _d.copy(camera.position).sub(_hp).applyQuaternion(_Bi.copy(_B).invert()).normalize();   // you, seen from her chest (z = her front)
+  const youY = Math.atan2(_d.x, _d.z), youP = -Math.asin(THREE.MathUtils.clamp(_d.y, -1, 1));
+  if (camera.position.distanceTo(g.lastCam) > .03) {                                 // you moved: she comes back to you
+    if (g.mode !== 'you') { g.mode = 'you'; g.react = 0; }
+    g.next = Math.max(g.next, g.t + 2.5); g.lastCam.copy(camera.position);
+  }
+  if (g.t > g.next) {
+    if (g.mode === 'you') { const s = Math.random() < .5 ? -1 : 1; g.mode = 'away'; g.gy = s * (.4 + Math.random() * .45); g.gp = (Math.random() - .3) * .16; g.next = g.t + .9 + Math.random() * 1.6; }
+    else { g.mode = 'you'; g.next = g.t + 3.5 + Math.random() * 4; }
+    g.react = 0;
+  }
+  // where her head wants to point. A person does not track you continuously: the head jumps to you in steps,
+  // after a short reaction delay, only once you have moved more than ~7°; the eyes would cover the rest.
+  let wy, wp;
+  if (FORCE !== null && FORCE !== 'you') { wy = +FORCE; wp = 0; }
+  else if (g.mode === 'you' || FORCE === 'you') { wy = Math.abs(youY) > 1.45 ? Math.sign(youY) * 1.0 : youY * .95; wp = youP * .6; }
+  else { wy = g.gy; wp = g.gp; }
+  wy = THREE.MathUtils.clamp(wy, -1.05, 1.05); wp = THREE.MathUtils.clamp(wp, -.25, .3);
+  if (FORCE !== null) { g.goalY = wy; g.goalP = wp; }
+  else if (g.react > 0) { if (g.t >= g.react) { g.goalY = g.pendY; g.goalP = g.pendP; g.react = 0; } }
+  else if (Math.abs(wy - g.goalY) > .12 || Math.abs(wp - g.goalP) > .1) { g.pendY = wy; g.pendP = wp; g.react = g.t + .12 + Math.random() * .12; }
+  const om = g.mode === 'away' ? 8 : 6.5;                                            // a 45° turn takes ~0.45 s, starts quick, lands soft
+  [g.y, g.vy] = spring(g.y, g.vy, g.goalY, om, dt); [g.p, g.vp] = spring(g.p, g.vp, g.goalP, om, dt);
+  if (FORCE !== null) { g.y = g.goalY; g.p = g.goalP; g.vy = g.vp = 0; }
+  const tt = g.t;
+  const yaw = g.y + Math.sin(tt * .29) * .015 + Math.sin(tt * .83 + 2) * .006;
+  const pitch = P0 + g.p + Math.sin(tt * 1.55) * .008 + Math.min(.04, Math.abs(g.vy) * .02);   // level chin + breathing nod + dip while turning
+  const roll = -g.y * .06 + Math.sin(tt * .41 + 1) * .01;                                          // slight tilt into the turn
+  const wT = (LOOK_W[curDef?.id] ?? .9) * +(params.get('look') ?? 1);
+  g.w = FORCE !== null ? wT : g.w + (wT - g.w) * Math.min(1, dt * 3);
+  // big turns bring the chest along a little (people do not turn the neck alone past ~40°)
+  const chestYaw = Math.sign(yaw) * Math.max(0, Math.abs(yaw) - .45) * .35 * g.w;
+  if (chestYaw) {
+    _e.set(0, chestYaw, 0); _Rn.setFromEuler(_e); _w1.copy(_B).multiply(_Rn).multiply(chestRest);
+    chestB.parent.getWorldQuaternion(_pw).invert(); chestB.quaternion.copy(_pw.multiply(_w1)); chestB.updateMatrixWorld(true);
+  }
+  // neck ~40%, head the rest (in her chest's frame as the animation left it)
+  _e.set(pitch * .4, yaw * .4, roll * .4); _Rn.setFromEuler(_e);
+  _e.set(pitch, yaw, roll); _R.setFromEuler(_e);
+  _w1.copy(_B).multiply(_Rn).multiply(neckRest); _w2.copy(wq(neckB)).slerp(_w1, g.w);
+  neckB.parent.getWorldQuaternion(_pw).invert(); neckB.quaternion.copy(_pw.multiply(_w2)); neckB.updateMatrixWorld(true);
+  _w1.copy(_B).multiply(_R).multiply(headRest); _w2.copy(wq(headB)).slerp(_w1, g.w);
+  headB.parent.getWorldQuaternion(_pw).invert(); headB.quaternion.copy(_pw.multiply(_w2)); headB.updateMatrixWorld(true);
+}
+
+
+
+// bone index remap: Blender bone order (figure.json) -> three.js skeleton order
+const remap = META.bones.map(n => skinned.skeleton.bones.findIndex(b => b.name.replace(/[^A-Za-z0-9]/g, '') === n.replace(/[^A-Za-z0-9]/g, '')));
+skinned.skeleton.computeBoneTexture();
+const fig = await loadFullFigure(FIG, skinned, remap.map(i => Math.max(i, 0)));
+fig.material.uniforms.boneTexture.value = skinned.skeleton.boneTexture;
+FBR.scene.add(fig); fbResize(fig);
+
+const ui = document.getElementById('ui');
+for (const c of CLIPS) { const b = document.createElement('button'); b.textContent = c.label; b.dataset.id = c.id; b.onclick = () => play(c); ui.appendChild(b); }
+{ const b = document.createElement('button'); b.textContent = MODE === 'after' ? '↔ قبل' : '↔ بعد'; b.onclick = () => { const p = new URLSearchParams(location.search); p.set('mode', MODE === 'after' ? 'before' : 'after'); p.delete('fig'); location.search = p; }; ui.appendChild(b); }
+await play(CLIPS.find(c => c.id === params.get('clip')) || CLIPS[0]);
+info.textContent = `${MODE === 'after' ? 'بعد' : 'قبل'} · ${fig.userData.N.toLocaleString()} نقطة · ${FIG} · relight ${LK.relight}/${LK.relightScan} ao ${LK.ao} fog ${LK.fog} crisp ${LK.crisp} skin ${LK.sks}/${LK.skg} res ${LK.res}`;
+window.__lab = { mode: MODE, fig: FIG, N: fig.userData.N, hasN: fig.userData.hasN, LK };
+
+const clock = new THREE.Clock(); let frame = 0;
+const PERF = params.has('perf') ? { t: [], t0: 0 } : null;          // ?perf : real-GPU frame timing -> window.__perf after 8 s (tools/perf.mjs)
+const warm = +(params.get('warm') || 0), at = params.has('t') ? +params.get('t') : null;
+if (at !== null) mixer.update(at);
+function tick() {
+  const dt = Math.min(clock.getDelta(), .05);
+  if (at === null) mixer.update(dt);
+  retarget(); lookUpdate(dt); skinned.skeleton.update();
+  fig.matrix.copy(skinned.matrixWorld); fig.matrixWorld.copy(skinned.matrixWorld);
+  fig.userData.shade(camera);
+  if (frame < 4 || at !== null) fig.userData.sortNow(camera); else fig.userData.sort(camera);   // fixed-time screenshots: exact order every frame
+  const hp = hipsT.getWorldPosition(_v); shadow.position.x = hp.x; shadow.position.z = hp.z;
+  ctl.update();
+  renderer.clear(); renderer.render(scene, camera);
+  if (FBR.scale < .999) {
+    const bg = scene.background; scene.background = null; scene.overrideMaterial = FBR.depthMat;
+    renderer.setRenderTarget(FBR.rt); renderer.setClearColor(0x000000, 0); renderer.clear(true, true, false); renderer.render(scene, camera);
+    scene.overrideMaterial = null; scene.background = bg; renderer.render(FBR.scene, camera); renderer.setRenderTarget(null); renderer.render(FBR.compScene, FBR.compCam);
+  } else renderer.render(FBR.scene, camera);
+  frame++;
+  if (PERF) { const now = performance.now(); if (!PERF.t0) PERF.t0 = now; PERF.t.push(now);
+    if (now - PERF.t0 > 8000 && !window.__perf) { const iv = PERF.t.slice(30).map((t, i, A) => i ? t - A[i - 1] : 0).slice(1).sort((a, b) => a - b), avg = iv.reduce((s, v) => s + v, 0) / iv.length;
+      const gl = renderer.getContext(), dbg = gl.getExtension('WEBGL_debug_renderer_info');
+      window.__perf = { gpu: dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : '?', mode: MODE, fps: +(1000 / avg).toFixed(1), frameMs: { avg: +avg.toFixed(1), p95: +iv[Math.floor(iv.length * .95)].toFixed(1) }, splats: fig.userData.N, LK }; } }
+  if (warm && frame === warm) document.body.dataset.ready = '1';
+  requestAnimationFrame(tick);
+}
+tick();
+addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); fbResize(fig); });
+</script>
+</body>
+</html>

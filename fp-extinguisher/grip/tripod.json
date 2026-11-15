@@ -1,0 +1,1292 @@
+{
+ "units": "m",
+ "frame": "game hand-root frame as in agr03 loadHand (Z = -(wrist->middle knuckle), X = ulnar on the right hand, Y = back of hand); hand scale 1 (S_CM)",
+ "bones": {
+  "Bip01_R_Finger0": [
+   -0.812735,
+   -0.370784,
+   0.046748,
+   0.446985
+  ],
+  "Bip01_R_Finger01": [
+   0.010672,
+   -0.098111,
+   0.116594,
+   0.988264
+  ],
+  "Bip01_R_Finger02": [
+   0,
+   0,
+   0.118842,
+   0.992913
+  ],
+  "Bip01_R_Finger1": [
+   -0.079167,
+   -0.130574,
+   0.404986,
+   0.901482
+  ],
+  "Bip01_R_Finger11": [
+   0,
+   0,
+   0.416743,
+   0.909024
+  ],
+  "Bip01_R_Finger12": [
+   0,
+   0,
+   0.084193,
+   0.996449
+  ],
+  "Bip01_R_Finger2": [
+   0.06748,
+   -0.072818,
+   0.439584,
+   0.892698
+  ],
+  "Bip01_R_Finger21": [
+   0,
+   0,
+   0.534029,
+   0.845466
+  ],
+  "Bip01_R_Finger22": [
+   0,
+   0,
+   0.099453,
+   0.995042
+  ],
+  "Bip01_R_Finger3": [
+   0.14883,
+   -0.00621,
+   0.34588,
+   0.926379
+  ],
+  "Bip01_R_Finger31": [
+   0,
+   0,
+   0.558096,
+   0.829776
+  ],
+  "Bip01_R_Finger32": [
+   0,
+   0,
+   0.220044,
+   0.97549
+  ],
+  "Bip01_R_Finger4": [
+   0.22649,
+   0.029674,
+   0.324546,
+   0.917873
+  ],
+  "Bip01_R_Finger41": [
+   0,
+   0,
+   0.703168,
+   0.711024
+  ],
+  "Bip01_R_Finger42": [
+   0,
+   0,
+   0.380037,
+   0.924971
+  ]
+ },
+ "pen": {
+  "tip": [
+   0.001157,
+   -0.087462,
+   -0.103722
+  ],
+  "dir": [
+   -0.447138,
+   0.853939,
+   0.266188
+  ],
+  "side": [
+   -0.364375,
+   0.097886,
+   -0.926093
+  ],
+  "length": 0.14,
+  "radius": 0.0043,
+  "cone": 0.014
+ },
+ "contacts": {
+  "thumb": [
+   -0.01859,
+   -0.05564,
+   -0.08983
+  ],
+  "index": [
+   -0.01237,
+   -0.06456,
+   -0.10129
+  ],
+  "middle": [
+   -0.0065,
+   -0.06353,
+   -0.09607
+  ],
+  "web": [
+   -0.03451,
+   -0.00916,
+   -0.07974
+  ]
+ },
+ "ulnarRest": [
+  0.036812,
+  -0.04097,
+  -0.078222
+ ],
+ "paper": {
+  "alt": 55,
+  "normal": [
+   -0.697558,
+   0.671738,
+   -0.249359
+  ],
+  "note": "page normal in the hand-root frame when the pen stands at alt deg to the page and the hand rests on its hypothenar + curled little finger; align it with the page normal, then choose the azimuth about it",
+  "alts": {
+   "40": {
+    "normal": [
+     -0.212643,
+     0.357977,
+     0.909195
+    ],
+    "rest": [
+     0.003245,
+     -0.038392,
+     -0.122553
+    ],
+    "touching": "Finger21",
+    "hypothenar_mm": 37.9,
+    "ring_little_mm": 0.5,
+    "middle_tip_mm": 5.4,
+    "knuckles_above_wrist_deg": -65.4,
+    "radial_up": 0.21,
+    "back_up": 0.36
+   },
+   "41": {
+    "normal": [
+     -0.241217,
+     0.361188,
+     0.900754
+    ],
+    "rest": [
+     0.02527,
+     -0.049042,
+     -0.11267
+    ],
+    "touching": "Finger31",
+    "hypothenar_mm": 37.2,
+    "ring_little_mm": 0,
+    "middle_tip_mm": 5.4,
+    "knuckles_above_wrist_deg": -64.3,
+    "radial_up": 0.24,
+    "back_up": 0.36
+   },
+   "42": {
+    "normal": [
+     -0.26854,
+     0.806946,
+     -0.526045
+    ],
+    "rest": [
+     0.011569,
+     -0.017808,
+     -0.002188
+    ],
+    "touching": "Hand",
+    "hypothenar_mm": 0.8,
+    "ring_little_mm": 11.6,
+    "middle_tip_mm": 3.1,
+    "knuckles_above_wrist_deg": 31.7,
+    "radial_up": 0.27,
+    "back_up": 0.81
+   },
+   "43": {
+    "normal": [
+     -0.306488,
+     0.799296,
+     -0.516906
+    ],
+    "rest": [
+     0.011569,
+     -0.017808,
+     -0.002188
+    ],
+    "touching": "Hand",
+    "hypothenar_mm": 0.1,
+    "ring_little_mm": 10.7,
+    "middle_tip_mm": 3,
+    "knuckles_above_wrist_deg": 31.1,
+    "radial_up": 0.31,
+    "back_up": 0.8
+   },
+   "44": {
+    "normal": [
+     -0.338067,
+     0.793967,
+     -0.505298
+    ],
+    "rest": [
+     0.027376,
+     -0.016346,
+     -0.00952
+    ],
+    "touching": "Hand",
+    "hypothenar_mm": 0,
+    "ring_little_mm": 10.1,
+    "middle_tip_mm": 3,
+    "knuckles_above_wrist_deg": 30.4,
+    "radial_up": 0.34,
+    "back_up": 0.79
+   },
+   "45": {
+    "normal": [
+     -0.369101,
+     0.78826,
+     -0.492352
+    ],
+    "rest": [
+     0.027376,
+     -0.016346,
+     -0.00952
+    ],
+    "touching": "Hand",
+    "hypothenar_mm": 0,
+    "ring_little_mm": 9.5,
+    "middle_tip_mm": 3,
+    "knuckles_above_wrist_deg": 29.5,
+    "radial_up": 0.37,
+    "back_up": 0.79
+   },
+   "46": {
+    "normal": [
+     -0.401351,
+     0.781251,
+     -0.478084
+    ],
+    "rest": [
+     0.027376,
+     -0.016346,
+     -0.00952
+    ],
+    "touching": "Hand",
+    "hypothenar_mm": 0,
+    "ring_little_mm": 8.9,
+    "middle_tip_mm": 3,
+    "knuckles_above_wrist_deg": 28.6,
+    "radial_up": 0.4,
+    "back_up": 0.78
+   },
+   "47": {
+    "normal": [
+     -0.435153,
+     0.772668,
+     -0.462197
+    ],
+    "rest": [
+     0.027376,
+     -0.016346,
+     -0.00952
+    ],
+    "touching": "Hand",
+    "hypothenar_mm": 0,
+    "ring_little_mm": 8.2,
+    "middle_tip_mm": 3,
+    "knuckles_above_wrist_deg": 27.5,
+    "radial_up": 0.44,
+    "back_up": 0.77
+   },
+   "48": {
+    "normal": [
+     -0.468099,
+     0.763721,
+     -0.444539
+    ],
+    "rest": [
+     0.035539,
+     -0.005527,
+     0.00084
+    ],
+    "touching": "Hand",
+    "hypothenar_mm": 0,
+    "ring_little_mm": 7.4,
+    "middle_tip_mm": 3,
+    "knuckles_above_wrist_deg": 26.4,
+    "radial_up": 0.47,
+    "back_up": 0.76
+   },
+   "49": {
+    "normal": [
+     -0.502774,
+     0.752912,
+     -0.424666
+    ],
+    "rest": [
+     0.035539,
+     -0.005527,
+     0.00084
+    ],
+    "touching": "Hand",
+    "hypothenar_mm": 0,
+    "ring_little_mm": 6.2,
+    "middle_tip_mm": 3,
+    "knuckles_above_wrist_deg": 25.1,
+    "radial_up": 0.5,
+    "back_up": 0.75
+   },
+   "50": {
+    "normal": [
+     -0.540301,
+     0.739385,
+     -0.401726
+    ],
+    "rest": [
+     0.035539,
+     -0.005527,
+     0.00084
+    ],
+    "touching": "Hand",
+    "hypothenar_mm": 0,
+    "ring_little_mm": 4.9,
+    "middle_tip_mm": 2.9,
+    "knuckles_above_wrist_deg": 23.7,
+    "radial_up": 0.54,
+    "back_up": 0.74
+   },
+   "51": {
+    "normal": [
+     -0.582341,
+     0.721758,
+     -0.374091
+    ],
+    "rest": [
+     0.035539,
+     -0.005527,
+     0.00084
+    ],
+    "touching": "Hand",
+    "hypothenar_mm": 0,
+    "ring_little_mm": 3.3,
+    "middle_tip_mm": 2.9,
+    "knuckles_above_wrist_deg": 22,
+    "radial_up": 0.58,
+    "back_up": 0.72
+   },
+   "52": {
+    "normal": [
+     -0.633072,
+     0.696564,
+     -0.337667
+    ],
+    "rest": [
+     0.035539,
+     -0.005527,
+     0.00084
+    ],
+    "touching": "Hand",
+    "hypothenar_mm": 0,
+    "ring_little_mm": 1.2,
+    "middle_tip_mm": 2.9,
+    "knuckles_above_wrist_deg": 19.7,
+    "radial_up": 0.63,
+    "back_up": 0.7
+   },
+   "53": {
+    "normal": [
+     -0.669301,
+     0.678888,
+     -0.301905
+    ],
+    "rest": [
+     0.036812,
+     -0.04097,
+     -0.078222
+    ],
+    "touching": "Finger42",
+    "hypothenar_mm": 0.8,
+    "ring_little_mm": 0,
+    "middle_tip_mm": 2.9,
+    "knuckles_above_wrist_deg": 17.6,
+    "radial_up": 0.67,
+    "back_up": 0.68
+   },
+   "54": {
+    "normal": [
+     -0.683404,
+     0.675703,
+     -0.276377
+    ],
+    "rest": [
+     0.036812,
+     -0.04097,
+     -0.078222
+    ],
+    "touching": "Finger42",
+    "hypothenar_mm": 1.9,
+    "ring_little_mm": 0,
+    "middle_tip_mm": 3.1,
+    "knuckles_above_wrist_deg": 16,
+    "radial_up": 0.68,
+    "back_up": 0.68
+   },
+   "55": {
+    "normal": [
+     -0.697558,
+     0.671738,
+     -0.249359
+    ],
+    "rest": [
+     0.036812,
+     -0.04097,
+     -0.078222
+    ],
+    "touching": "Finger42",
+    "hypothenar_mm": 3,
+    "ring_little_mm": 0,
+    "middle_tip_mm": 3.2,
+    "knuckles_above_wrist_deg": 14.4,
+    "radial_up": 0.7,
+    "back_up": 0.67
+   },
+   "56": {
+    "normal": [
+     -0.711822,
+     0.66685,
+     -0.2205
+    ],
+    "rest": [
+     0.036812,
+     -0.04097,
+     -0.078222
+    ],
+    "touching": "Finger42",
+    "hypothenar_mm": 4.2,
+    "ring_little_mm": 0,
+    "middle_tip_mm": 3.3,
+    "knuckles_above_wrist_deg": 12.7,
+    "radial_up": 0.71,
+    "back_up": 0.67
+   },
+   "57": {
+    "normal": [
+     -0.726295,
+     0.660815,
+     -0.189261
+    ],
+    "rest": [
+     0.036812,
+     -0.04097,
+     -0.078222
+    ],
+    "touching": "Finger42",
+    "hypothenar_mm": 5.5,
+    "ring_little_mm": 0,
+    "middle_tip_mm": 3.5,
+    "knuckles_above_wrist_deg": 10.9,
+    "radial_up": 0.73,
+    "back_up": 0.66
+   },
+   "58": {
+    "normal": [
+     -0.736224,
+     0.657518,
+     -0.160136
+    ],
+    "rest": [
+     0.044422,
+     -0.035932,
+     -0.091053
+    ],
+    "touching": "Finger42",
+    "hypothenar_mm": 7,
+    "ring_little_mm": 0,
+    "middle_tip_mm": 3.6,
+    "knuckles_above_wrist_deg": 9.2,
+    "radial_up": 0.74,
+    "back_up": 0.66
+   },
+   "59": {
+    "normal": [
+     -0.742738,
+     0.656275,
+     -0.13283
+    ],
+    "rest": [
+     0.044422,
+     -0.035932,
+     -0.091053
+    ],
+    "touching": "Finger42",
+    "hypothenar_mm": 8.7,
+    "ring_little_mm": 0,
+    "middle_tip_mm": 3.9,
+    "knuckles_above_wrist_deg": 7.6,
+    "radial_up": 0.74,
+    "back_up": 0.66
+   },
+   "60": {
+    "normal": [
+     -0.748955,
+     0.654408,
+     -0.104006
+    ],
+    "rest": [
+     0.044422,
+     -0.035932,
+     -0.091053
+    ],
+    "touching": "Finger42",
+    "hypothenar_mm": 9.8,
+    "ring_little_mm": 0,
+    "middle_tip_mm": 4.1,
+    "knuckles_above_wrist_deg": 6,
+    "radial_up": 0.75,
+    "back_up": 0.65
+   },
+   "61": {
+    "normal": [
+     -0.75485,
+     0.651795,
+     -0.073241
+    ],
+    "rest": [
+     0.044422,
+     -0.035932,
+     -0.091053
+    ],
+    "touching": "Finger42",
+    "hypothenar_mm": 10.7,
+    "ring_little_mm": 0,
+    "middle_tip_mm": 4.3,
+    "knuckles_above_wrist_deg": 4.2,
+    "radial_up": 0.75,
+    "back_up": 0.65
+   },
+   "62": {
+    "normal": [
+     -0.760391,
+     0.648241,
+     -0.03986
+    ],
+    "rest": [
+     0.044422,
+     -0.035932,
+     -0.091053
+    ],
+    "touching": "Finger42",
+    "hypothenar_mm": 11.6,
+    "ring_little_mm": 0,
+    "middle_tip_mm": 4.5,
+    "knuckles_above_wrist_deg": 2.3,
+    "radial_up": 0.76,
+    "back_up": 0.65
+   },
+   "63": {
+    "normal": [
+     -0.765518,
+     0.643408,
+     -0.002695
+    ],
+    "rest": [
+     0.044422,
+     -0.035932,
+     -0.091053
+    ],
+    "touching": "Finger42",
+    "hypothenar_mm": 12.7,
+    "ring_little_mm": 0,
+    "middle_tip_mm": 4.8,
+    "knuckles_above_wrist_deg": 0.2,
+    "radial_up": 0.77,
+    "back_up": 0.64
+   },
+   "64": {
+    "normal": [
+     -0.769082,
+     0.63803,
+     0.03783
+    ],
+    "rest": [
+     0.041307,
+     -0.039603,
+     -0.094647
+    ],
+    "touching": "Finger42",
+    "hypothenar_mm": 13.8,
+    "ring_little_mm": 0,
+    "middle_tip_mm": 5.1,
+    "knuckles_above_wrist_deg": -2.2,
+    "radial_up": 0.77,
+    "back_up": 0.64
+   }
+  }
+ },
+ "display": {
+  "az": 35
+ },
+ "diagnostics": {
+  "cost": 556.55,
+  "terms": {
+   "gapI": 0.873,
+   "idxOther": 20.193,
+   "gapT": 0.001,
+   "gapM": 0.001,
+   "midOther": 3.997,
+   "idxLoc": 0,
+   "midLoc": 7.02,
+   "footI": 0.096,
+   "footT": 16.835,
+   "footM": 0,
+   "pen": 0.133,
+   "tipFree": 0.017,
+   "web": 0,
+   "webPos": 5.274,
+   "fold": 83.439,
+   "theta": 0,
+   "joints": 285.772,
+   "cmcReg": 4.658,
+   "facingI": 0,
+   "facingT": 2.353,
+   "facingM": 0,
+   "spread": 0,
+   "crossing": 97.88,
+   "idxTip": 0,
+   "roof": 0,
+   "thTip": 19.314,
+   "midTip": 0,
+   "fingers": 0,
+   "paper": 8.693,
+   "idxTop": 0,
+   "vis": 0
+  },
+  "gaps_mm": {
+   "thumb_pad": 0.1,
+   "index_pad": 0.62,
+   "index_nearest_non_pad": 0.68,
+   "middle_radial_side": 0.1,
+   "web": 0.43,
+   "note": "skin to the pen surface; index_pad = the true pad (bone-local x 7-17.8 mm, y > 2.5 mm, within 35 deg of the pad direction), index_nearest_non_pad = the closest index-distal skin outside it (tip, sides, nail) - must be >= index_pad + 0.2"
+  },
+  "min_skin_to_pen_mm": {
+   "thumb": 0.1,
+   "index": 0.62,
+   "middle": 0.09,
+   "ring": 19.77,
+   "little": 45.77,
+   "palm": 0.43
+  },
+  "tip_region_clearance_mm": {
+   "cone_0_14": "7.54 (Finger22)",
+   "below_18": "3.05 (Finger22)",
+   "below_index_pad": "0.1 (Finger22)"
+  },
+  "along_pen_mm": {
+   "index_pad": 26.3,
+   "thumb_pad": 39.7,
+   "thumb_above_index": 13.5,
+   "middle_side": 25.9,
+   "web_contact": 89.2,
+   "note": "distance along the pen from the tip"
+  },
+  "index_fingertip": {
+   "along_pen_mm": 18.5,
+   "further_down_than_pad_mm": 7.8,
+   "to_pen_surface_mm": 2.4
+  },
+  "thumb_tip": {
+   "along_pen_mm": 29.4,
+   "to_pen_surface_mm": 7.5
+  },
+  "middle_tip": {
+   "along_pen_mm": 15.3,
+   "to_pen_surface_mm": 7.7
+  },
+  "index_skin_to_pen_per_5mm_from_pad_to_web": [
+   8.3,
+   4.3,
+   7.8,
+   10,
+   11.6,
+   11.1,
+   7.7,
+   6.9,
+   5.5,
+   4.6
+  ],
+  "pen_forearm_deg": {
+   "wrist_straight": 74.6,
+   "wrist_extended_10": 65.8,
+   "wrist_extended_20": 57.2,
+   "note": "pen (tip->top) vs the forearm axis (wrist->elbow); the hand-root +Z is the forearm axis with a straight wrist"
+  },
+  "joints_total_flexion_deg": {
+   "thumb": [
+    19.9,
+    13.7,
+    13.7
+   ],
+   "index": [
+    49.8,
+    49.3,
+    9.7
+   ],
+   "middle": [
+    54.1,
+    64.6,
+    11.4
+   ],
+   "ring": [
+    42.9,
+    67.8,
+    25.4
+   ],
+   "little": [
+    39.8,
+    89.4,
+    44.7
+   ]
+  },
+  "joints_out_of_plane_tilt_deg": {
+   "thumb": [
+    -37.4,
+    -11,
+    0
+   ],
+   "index": [
+    -4.1,
+    0,
+    0
+   ],
+   "middle": [
+    -4.7,
+    0,
+    0
+   ],
+   "ring": [
+    -8.9,
+    0,
+    0
+   ],
+   "little": [
+    -15.5,
+    0,
+    0
+   ]
+  },
+  "thumb_metacarpal_deg": {
+   "palmar_abduction": 44.5,
+   "radial_abduction": 4.4,
+   "first_second_metacarpal": 41.7,
+   "note": "rest pose: palmar 33.8, radial 17.0"
+  },
+  "phalanx_to_pen_deg": {
+   "thumb_distal": 37.7,
+   "index_distal": 33.4,
+   "middle_distal": 59
+  },
+  "pad_facing_cos": {
+   "index": 0.88,
+   "thumb": 0.8,
+   "middle_side": 0.76
+  },
+  "around_pen_deg": {
+   "thumb_index": 125.5,
+   "middle_index": 116.5,
+   "middle_thumb": 118
+  },
+  "index_on_top_of_pen_cos": 0.96,
+  "finger_intersections": {
+   "triangle_pairs": 0,
+   "by_bone": {},
+   "note": "exact triangle-triangle test on the skinned mesh between every two of thumb, index, middle, ring, little, palm"
+  },
+  "web_fold": {
+   "skin_fold_pen_surface_mm": 7.9,
+   "skin_fold_pen_axis_mm": 12.2,
+   "skin_fold_dorsal_mm": 1.8,
+   "skin_fold_along_pen_mm": 85.5,
+   "joint_midpoint_pen_axis_mm": 13.8,
+   "joint_midpoint_dorsal_mm": 0.5,
+   "note": "skin fold = the two rest skin vertices at the crotch of the first web space; joint midpoint = midpoint of the index MCP and thumb MCP joint centres (rig report); dorsal > 0 = the pen passes on the back-of-hand side"
+  },
+  "eye_visibility_lowest_25mm": {
+   "alt45_near": "1 of 7 hidden (2:ok 6:ok 10:ok 14:ok 18:Finger12 22:ok 25:ok)",
+   "alt45_left": "1 of 7 hidden (2:ok 6:ok 10:ok 14:ok 18:Finger12 22:ok 25:ok)",
+   "alt50_near": "0 of 7 hidden (2:ok 6:ok 10:ok 14:ok 18:ok 22:ok 25:ok)",
+   "alt50_left": "0 of 7 hidden (2:ok 6:ok 10:ok 14:ok 18:ok 22:ok 25:ok)",
+   "alt55_near": "0 of 7 hidden (2:ok 6:ok 10:ok 14:ok 18:ok 22:ok 25:ok)",
+   "alt55_left": "0 of 7 hidden (2:ok 6:ok 10:ok 14:ok 18:ok 22:ok 25:ok)",
+   "alt60_near": "4 of 7 hidden (2:ok 6:ok 10:ok 14:Finger02 18:Finger02 22:Finger02 25:Finger02)",
+   "alt60_left": "2 of 7 hidden (2:ok 6:ok 10:ok 14:ok 18:ok 22:Finger02 25:Finger02)"
+  },
+  "page_rest": {
+   "45": {
+    "normal": [
+     -0.369101,
+     0.78826,
+     -0.492352
+    ],
+    "rest": [
+     0.027376,
+     -0.016346,
+     -0.00952
+    ],
+    "touching": "Hand",
+    "hypothenar_mm": 0,
+    "ring_little_mm": 9.5,
+    "middle_tip_mm": 3,
+    "knuckles_above_wrist_deg": 29.5,
+    "radial_up": 0.37,
+    "back_up": 0.79
+   },
+   "50": {
+    "normal": [
+     -0.540301,
+     0.739385,
+     -0.401726
+    ],
+    "rest": [
+     0.035539,
+     -0.005527,
+     0.00084
+    ],
+    "touching": "Hand",
+    "hypothenar_mm": 0,
+    "ring_little_mm": 4.9,
+    "middle_tip_mm": 2.9,
+    "knuckles_above_wrist_deg": 23.7,
+    "radial_up": 0.54,
+    "back_up": 0.74
+   },
+   "55": {
+    "normal": [
+     -0.697558,
+     0.671738,
+     -0.249359
+    ],
+    "rest": [
+     0.036812,
+     -0.04097,
+     -0.078222
+    ],
+    "touching": "Finger42",
+    "hypothenar_mm": 3,
+    "ring_little_mm": 0,
+    "middle_tip_mm": 3.2,
+    "knuckles_above_wrist_deg": 14.4,
+    "radial_up": 0.7,
+    "back_up": 0.67
+   },
+   "60": {
+    "normal": [
+     -0.748955,
+     0.654408,
+     -0.104006
+    ],
+    "rest": [
+     0.044422,
+     -0.035932,
+     -0.091053
+    ],
+    "touching": "Finger42",
+    "hypothenar_mm": 9.8,
+    "ring_little_mm": 0,
+    "middle_tip_mm": 4.1,
+    "knuckles_above_wrist_deg": 6,
+    "radial_up": 0.75,
+    "back_up": 0.65
+   }
+  },
+  "params": {
+   "th.opp": 5.46,
+   "th.palm": -33.59,
+   "th.pron": 2.56,
+   "th.mcp": 13.46,
+   "th.ip": 13.65,
+   "th.mcpAbd": -11.33,
+   "i.mcp": 50.22,
+   "i.pip": 49.26,
+   "i.dip": 9.66,
+   "i.abd": -11.85,
+   "i.roll": -7.18,
+   "m.mcp": 54.22,
+   "m.pip": 64.56,
+   "m.dip": 11.42,
+   "m.abd": -2.48,
+   "m.roll": -9,
+   "r.mcp": 42.88,
+   "r.pip": 67.85,
+   "r.dip": 25.42,
+   "r.abd": 0,
+   "l.mcp": 39.84,
+   "l.pip": 89.36,
+   "l.dip": 44.67,
+   "l.abd": 0,
+   "T.x": 1.16,
+   "T.y": -87.46,
+   "T.z": -103.72,
+   "pen.theta": 74.56,
+   "pen.phi": 117.64
+  }
+ },
+ "variants": {
+  "up": {
+   "bones": {
+    "Bip01_R_Finger0": [
+     -0.825103,
+     -0.371867,
+     0.039775,
+     0.423483
+    ],
+    "Bip01_R_Finger01": [
+     0.010853,
+     -0.097128,
+     0.113707,
+     0.988696
+    ],
+    "Bip01_R_Finger02": [
+     0,
+     0,
+     0.115425,
+     0.993316
+    ],
+    "Bip01_R_Finger1": [
+     -0.073913,
+     -0.129774,
+     0.397015,
+     0.90558
+    ],
+    "Bip01_R_Finger11": [
+     0,
+     0,
+     0.415958,
+     0.909384
+    ],
+    "Bip01_R_Finger12": [
+     0,
+     0,
+     0.083891,
+     0.996475
+    ],
+    "Bip01_R_Finger2": [
+     0.070373,
+     -0.077787,
+     0.433576,
+     0.894991
+    ],
+    "Bip01_R_Finger21": [
+     0,
+     0,
+     0.52593,
+     0.850528
+    ],
+    "Bip01_R_Finger22": [
+     0,
+     0,
+     0.09987,
+     0.995001
+    ],
+    "Bip01_R_Finger3": [
+     0.14883,
+     -0.00621,
+     0.34588,
+     0.926379
+    ],
+    "Bip01_R_Finger31": [
+     0,
+     0,
+     0.558096,
+     0.829776
+    ],
+    "Bip01_R_Finger32": [
+     0,
+     0,
+     0.220044,
+     0.97549
+    ],
+    "Bip01_R_Finger4": [
+     0.22649,
+     0.029674,
+     0.324546,
+     0.917873
+    ],
+    "Bip01_R_Finger41": [
+     0,
+     0,
+     0.703168,
+     0.711024
+    ],
+    "Bip01_R_Finger42": [
+     0,
+     0,
+     0.380037,
+     0.924971
+    ]
+   },
+   "pen": {
+    "tip": [
+     0.000628,
+     -0.088755,
+     -0.105724
+    ],
+    "dir": [
+     -0.434281,
+     0.854799,
+     0.284109
+    ],
+    "side": [
+     -0.38147,
+     0.111198,
+     -0.917669
+    ]
+   },
+   "contacts": {
+    "thumb": [
+     -0.01924,
+     -0.05517,
+     -0.09042
+    ],
+    "index": [
+     -0.01321,
+     -0.06461,
+     -0.10231
+    ],
+    "middle": [
+     -0.00721,
+     -0.06383,
+     -0.09736
+    ],
+    "web": [
+     -0.03451,
+     -0.00918,
+     -0.07971
+    ]
+   },
+   "diagnostics": {
+    "gaps_mm": {
+     "thumb_pad": 0.09,
+     "index_pad": 0.53,
+     "index_nearest_non_pad": 0.57,
+     "middle_radial_side": 0.06,
+     "web": 0.42
+    },
+    "min_skin_to_pen_mm": 0.04167917865397202,
+    "along_pen_mm": {
+     "index_pad": 27.6,
+     "thumb_pad": 41.7,
+     "middle_side": 27.1
+    },
+    "tip_shift_mm": [
+     -0.528962,
+     -1.292682,
+     -2.002582
+    ],
+    "tip_shift_on_page_mm": 2.44,
+    "tip_shift_perpendicular_to_pen_mm": 2,
+    "tip_off_page_mm": 0,
+    "pen_turn_deg": 1.26,
+    "joint_change_deg": {
+     "th.opp": 1.71,
+     "th.palm": -2.28,
+     "th.pron": -0.3,
+     "th.mcp": -0.34,
+     "th.ip": -0.39,
+     "th.mcpAbd": 0.11,
+     "i.mcp": -1.07,
+     "i.pip": -0.1,
+     "i.dip": -0.03,
+     "i.abd": -0.19,
+     "i.roll": 0.61,
+     "m.mcp": -0.6,
+     "m.pip": -1.09,
+     "m.dip": 0.05,
+     "m.abd": -0.97,
+     "m.roll": 0.56
+    },
+    "finger_intersections": 0
+   }
+  },
+  "down": {
+   "bones": {
+    "Bip01_R_Finger0": [
+     -0.799933,
+     -0.368915,
+     0.05351,
+     0.470262
+    ],
+    "Bip01_R_Finger01": [
+     0.010485,
+     -0.099094,
+     0.11948,
+     0.987823
+    ],
+    "Bip01_R_Finger02": [
+     0,
+     0,
+     0.122258,
+     0.992498
+    ],
+    "Bip01_R_Finger1": [
+     -0.084341,
+     -0.131457,
+     0.412925,
+     0.897273
+    ],
+    "Bip01_R_Finger11": [
+     0,
+     0,
+     0.417528,
+     0.908664
+    ],
+    "Bip01_R_Finger12": [
+     0,
+     0,
+     0.084494,
+     0.996424
+    ],
+    "Bip01_R_Finger2": [
+     0.064692,
+     -0.067917,
+     0.445601,
+     0.890304
+    ],
+    "Bip01_R_Finger21": [
+     0,
+     0,
+     0.54208,
+     0.840327
+    ],
+    "Bip01_R_Finger22": [
+     0,
+     0,
+     0.099037,
+     0.995084
+    ],
+    "Bip01_R_Finger3": [
+     0.14883,
+     -0.00621,
+     0.34588,
+     0.926379
+    ],
+    "Bip01_R_Finger31": [
+     0,
+     0,
+     0.558096,
+     0.829776
+    ],
+    "Bip01_R_Finger32": [
+     0,
+     0,
+     0.220044,
+     0.97549
+    ],
+    "Bip01_R_Finger4": [
+     0.22649,
+     0.029674,
+     0.324546,
+     0.917873
+    ],
+    "Bip01_R_Finger41": [
+     0,
+     0,
+     0.703168,
+     0.711024
+    ],
+    "Bip01_R_Finger42": [
+     0,
+     0,
+     0.380037,
+     0.924971
+    ]
+   },
+   "pen": {
+    "tip": [
+     0.001686,
+     -0.08617,
+     -0.101719
+    ],
+    "dir": [
+     -0.460176,
+     0.852615,
+     0.247559
+    ],
+    "side": [
+     -0.37067,
+     0.068867,
+     -0.926208
+    ]
+   },
+   "contacts": {
+    "thumb": [
+     -0.01797,
+     -0.05607,
+     -0.08926
+    ],
+    "index": [
+     -0.01169,
+     -0.06452,
+     -0.10022
+    ],
+    "middle": [
+     -0.00582,
+     -0.06318,
+     -0.09477
+    ],
+    "web": [
+     -0.0345,
+     -0.00915,
+     -0.07977
+    ]
+   },
+   "diagnostics": {
+    "gaps_mm": {
+     "thumb_pad": 0.09,
+     "index_pad": 0.76,
+     "index_nearest_non_pad": 0.83,
+     "middle_radial_side": 0.1,
+     "web": 0.44
+    },
+    "min_skin_to_pen_mm": 0.09013167993539815,
+    "along_pen_mm": {
+     "index_pad": 25,
+     "thumb_pad": 37.8,
+     "middle_side": 24.8
+    },
+    "tip_shift_mm": [
+     0.528962,
+     1.292682,
+     2.002582
+    ],
+    "tip_shift_on_page_mm": 2.44,
+    "tip_shift_perpendicular_to_pen_mm": 2,
+    "tip_off_page_mm": 0,
+    "pen_turn_deg": 1.31,
+    "joint_change_deg": {
+     "th.opp": -1.71,
+     "th.palm": 2.28,
+     "th.pron": 0.3,
+     "th.mcp": 0.34,
+     "th.ip": 0.39,
+     "th.mcpAbd": -0.11,
+     "i.mcp": 1.07,
+     "i.pip": 0.1,
+     "i.dip": 0.03,
+     "i.abd": 0.19,
+     "i.roll": -0.61,
+     "m.mcp": 0.6,
+     "m.pip": 1.09,
+     "m.dip": -0.05,
+     "m.abd": 0.97,
+     "m.roll": -0.56
+    },
+    "finger_intersections": 0
+   }
+  },
+  "note": "up = the tip moves up the page (away from the writer, fingers extend), down = toward the writer (fingers flex); joint changes are exact mirrors (max |change_up + change_down| = 2.2e-16 deg), so blending main <-> up <-> down moves every joint monotonically"
+ }
+}

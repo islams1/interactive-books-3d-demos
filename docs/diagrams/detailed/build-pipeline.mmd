@@ -1,0 +1,46 @@
+%% How a demo was actually produced (development pipeline, verified from scripts and files; no runtime AI).
+flowchart LR
+  subgraph IN["Inputs"]
+    BR["Client situation brief (PDF)"]
+    REF["Developer references: screenshots, videos, links"]
+  end
+  subgraph CODE["Code"]
+    CC["Claude Code plans and edits ONE html file per demo"]
+    HTML["saf01.html / agr03.html / aq01.html"]
+  end
+  subgraph ASSETS["Assets"]
+    LIB["Rocketbox MIT, Poly Haven CC0, Renderpeople"]
+    BL["Blender 5.2 headless: rp_to_web.py, bake_ao.py, mud_palms.py"]
+    GLB["GLB bodies, AO maps, textures"]
+  end
+  subgraph VOICE["Voices"]
+    GL["gen_lines.py reads the TXT table and say items"]
+    EL["ElevenLabs eleven_v3 with timestamps"]
+    AUD["audio/game: mp3 + letter timings + manifest.json"]
+  end
+  subgraph GRIP["Hand data"]
+    CMA["CMA-ES grip solver in Node"]
+    TJ["grip/tripod.json"]
+  end
+  subgraph QA["Checks"]
+    HC["Headless Chrome screenshots, perf.mjs, autopilot paths ?auto"]
+    RV["Review subagents"]
+    DEV{"Developer looks at the result"}
+  end
+  subgraph SHIP["Release"]
+    SY["sync_deploy.py copies the page and only the assets it needs"]
+    VC["Vercel static hosting"]
+  end
+  BR --> CC
+  REF --> CC
+  CC --> HTML
+  LIB --> BL --> GLB
+  HTML --> GL --> EL --> AUD
+  CMA --> TJ
+  HTML --> HC --> RV --> DEV
+  DEV -->|"corrections"| CC
+  DEV -->|"accepted"| SY
+  GLB --> SY
+  AUD --> SY
+  TJ --> SY
+  SY --> VC

@@ -1,0 +1,43 @@
+%% Component interaction inside fp-extinguisher/saf01.html (one module scope, shared mutable globals).
+%% AGR-03 has the same shape: G queue + updateFlow, notebook NB, hands HAND, Engine mock.
+flowchart TB
+  IN["Section 9 INPUT - window keydown, keyup, mouse events, pointer lock"]
+  HSM["Section 10 HAND STATE MACHINE - updateHands, state H"]
+  ENG["Section 8 ENGINE mock - Engine.dispatch, in-memory log"]
+  RUNQ["SAF module - SAF queue, qStart, qDone, updateSAF, watches"]
+  CB["Question callbacks - step1, afterReason, pickExt"]
+  VOICE["Voices - loadVoices, speak, VOICE"]
+  FACE["Faces - setupFace, charTarget, alignTarget, updateFace"]
+  DLG["Chat transcript - DLG, showSub, renderDlg, dlgTick"]
+  CH["Choices UI - renderChoices, keys 1-4"]
+  NPC["NPCs - WORKERS, loadWorkers, loadClip, updateWorkers"]
+  RPT["Renderpeople bodies - attachRP, updateRP, RP_MAP"]
+  LOOK["Attention - attend, npcLook"]
+  PL["Section 11 PLAYER - updatePlayer, collision boxes"]
+  FIRE["Section 12 FIRE SPRAY SMOKE - updateFire"]
+  EMO["Section 13 EMOTION - updateEmotion"]
+  HUD["Section 15 HUD - safObjective"]
+  ENDS["Endings - showEnding, renderEnding"]
+  IN --> HSM
+  IN --> CH
+  IN --> PL
+  HSM -->|"take_extinguisher, pull_pin, grab_hose, drop_extinguisher"| ENG
+  HSM --> FIRE
+  FIRE -->|"spray_start, spray_stop, fire_out, extinguisher_empty"| ENG
+  EMO -->|"too_close"| ENG
+  ENG -->|"hooks SAF.onFireOut, SAF.onEmpty"| RUNQ
+  CH -->|"picked option"| CB
+  CB -->|"SAF.now and SAF.add"| RUNQ
+  RUNQ -->|"say item"| VOICE
+  RUNQ -->|"ask item"| CH
+  VOICE --> FACE
+  VOICE --> DLG
+  RUNQ -->|"lookAt, turnTo, setScript"| LOOK
+  LOOK --> NPC
+  NPC --> RPT
+  FIRE -->|"reads SAF.extType and SAF.fireCap"| RUNQ
+  FIRE --> EMO
+  EMO --> HSM
+  RUNQ -->|"SAF.drive, faceTo"| PL
+  HUD -->|"reads SAF.step and SAF.obj"| RUNQ
+  CB --> ENDS

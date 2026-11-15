@@ -1,0 +1,2034 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PJ-320 Oil Field</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600&family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f1ede6; --panel:rgba(251,249,245,.9); --line:#e3dcd1; --ink:#1b1c1f; --mute:#8d867b;
+  --acc:#ff5a1f; --ok:#27a36a; --col:258px; --gut:14px;
+  --mono:'JetBrains Mono',ui-monospace,Menlo,monospace; --sans:'Space Grotesk',system-ui,sans-serif; --ar:'IBM Plex Sans Arabic',system-ui,sans-serif;
+}
+body.ar{--mono:'IBM Plex Sans Arabic',system-ui,sans-serif; --sans:'IBM Plex Sans Arabic',system-ui,sans-serif}
+body.ar *{letter-spacing:0 !important}
+body.ar #crosses{letter-spacing:14px !important;direction:ltr}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font-family:var(--mono);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+#scene{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab;outline:none}
+#scene.hover{cursor:pointer}
+#scene:active{cursor:grabbing}
+
+/* ---------- header ---------- */
+header{position:fixed;top:0;left:0;right:0;height:72px;display:flex;z-index:6;pointer-events:none}
+.logo{width:132px;background:var(--acc);color:#fff;display:flex;align-items:center;gap:10px;padding:0 16px;pointer-events:auto}
+.logo svg{width:30px;height:30px;flex:none}
+.logo b{font:700 11px 'JetBrains Mono',monospace;letter-spacing:.2em}
+.title{padding:12px 18px 0}
+.title .k{display:block;margin-bottom:3px}
+.title h1{font:700 26px/1 var(--sans);letter-spacing:-.02em;white-space:nowrap}
+.title h1 .sl{color:var(--acc);font-weight:500}
+.title .subt{margin-top:6px;font-size:9px;letter-spacing:.28em;color:#58534c}
+body.ar .title .subt{font-size:11px}
+.metrics{margin-left:auto;display:flex;padding:16px 6px 0 0;pointer-events:auto}
+.metric{padding:0 14px;border-left:1px solid var(--line);min-width:88px}
+.metric:first-child{border-left:0}
+.metric .v{font-size:11px;letter-spacing:.08em;margin-top:6px;white-space:nowrap}
+.metric .v .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--acc);margin-inline-end:7px;vertical-align:1px;animation:blink 1.6s infinite}
+@keyframes blink{50%{opacity:.25}}
+.gload{width:240px;padding-right:16px;border-left:0}
+.gload .top{display:flex;justify-content:space-between}
+.segs{display:flex;gap:2px;margin:5px 0 4px;height:9px;direction:ltr}
+.segs i{flex:1;background:#e4ddd2;border-radius:1px}
+.segs i.on{background:var(--ink)}
+.segs i.hot{background:var(--acc)}
+.hbtns{display:flex;gap:6px;padding:16px 14px 0 8px;pointer-events:auto;align-items:flex-start}
+.drawer{display:none}
+.lang{display:flex;border:1px solid var(--line);border-radius:3px;overflow:hidden;background:#fff}
+.lang button{font:600 9.5px 'JetBrains Mono',monospace;padding:6px 9px;letter-spacing:.1em;color:var(--mute)}
+.lang button[data-lang=ar]{font:600 11px 'IBM Plex Sans Arabic',sans-serif;padding:4px 9px}
+.lang button.on{background:var(--ink);color:#fff}
+
+/* ---------- shared ---------- */
+.k{font-size:8px;letter-spacing:.2em;color:var(--mute);text-transform:uppercase}
+body.ar .k{font-size:10px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:10px 12px 11px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);pointer-events:auto}
+body.ar .panel,body.ar .title,body.ar .metric,body.ar .hud,body.ar .lbl,body.ar #footer span{direction:rtl}
+.ph{display:flex;justify-content:space-between;align-items:center;font-size:9.5px;letter-spacing:.2em;font-weight:700;margin-bottom:8px}
+body.ar .ph{font-size:11.5px}
+.ph b::before{content:'';display:inline-block;width:3px;height:10px;background:var(--acc);margin-inline-end:8px;vertical-align:-1px}
+.ph i{font-style:normal;color:var(--mute);font-weight:400;font-size:8.5px;letter-spacing:.12em}
+body.ar .ph i{font-size:10px}
+.big{font:700 28px/1 var(--sans);letter-spacing:-.03em;white-space:nowrap}
+.big.sm{font-size:21px}
+.big small{font:500 10.5px var(--sans);color:var(--mute);margin-inline-start:3px;letter-spacing:0}
+.row{display:flex;justify-content:space-between;align-items:flex-end;gap:8px}
+.ta-end{text-align:end}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
+.grid3 .v{font-size:11px;margin-top:4px;letter-spacing:.03em;white-space:nowrap}
+canvas.mini{display:block;width:100%;height:44px;margin-top:6px}
+canvas.dyno{display:block;width:100%;height:84px;margin-top:2px}
+.chip{font:600 8.5px var(--mono);letter-spacing:.14em;padding:5px 7px;border:1px solid var(--line);background:#fff;border-radius:3px;text-transform:uppercase;transition:background .15s,color .15s,border-color .15s}
+body.ar .chip{font-size:11px;padding:3px 8px}
+.chip:hover{border-color:var(--ink)}
+.chip.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+.chip:disabled{opacity:.35;pointer-events:none}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.pill{font:700 7.5px var(--mono);letter-spacing:.12em;padding:2px 5px;border-radius:2px;color:#fff;background:var(--ok);white-space:nowrap}
+body.ar .pill{font-size:9.5px;font-weight:600;padding:1px 6px}
+.pill.idle{background:#ddd6cb;color:#6b655c}
+.pill.acc{background:var(--acc)}
+
+/* ---------- side columns ---------- */
+#left,#right{position:fixed;top:84px;bottom:var(--gut);width:var(--col);display:flex;flex-direction:column;gap:8px;overflow-y:auto;scrollbar-width:none;z-index:5;transition:transform .35s cubic-bezier(.2,.8,.2,1)}
+#left::-webkit-scrollbar,#right::-webkit-scrollbar{display:none}
+#left{left:var(--gut)} #right{right:var(--gut)}
+.bars{display:flex;gap:3px;height:16px;direction:ltr}
+.bars i{width:8px;background:#e4ddd2;border-radius:1px}
+.bars i.on{background:var(--ok)}
+.bars i.hot{background:var(--acc)}
+.slider{margin-top:8px}
+.slider .row{align-items:center}
+.slider .v{font-size:10.5px}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:16px;background:transparent;margin-top:2px;direction:ltr}
+input[type=range]::-webkit-slider-runnable-track{height:2px;background:linear-gradient(to right,var(--acc) var(--p,50%),#ddd5c9 var(--p,50%))}
+input[type=range]::-moz-range-track{height:2px;background:#ddd5c9}
+input[type=range]::-moz-range-progress{height:2px;background:var(--acc)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:#fff;border:2px solid var(--acc);margin-top:-5px}
+input[type=range]::-moz-range-thumb{width:9px;height:9px;border-radius:50%;background:#fff;border:2px solid var(--acc)}
+.btnrow{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap}
+
+/* inspector */
+.insp-no{font:700 9.5px var(--mono);color:var(--acc);letter-spacing:.18em}
+.insp-name{font:700 18px/1.15 var(--sans);letter-spacing:-.02em;margin-top:3px}
+.insp-sub{font-size:8.5px;letter-spacing:.14em;color:var(--mute);margin-top:5px}
+body.ar .insp-sub{font-size:10.5px}
+.insp-desc{font:400 11.5px/1.65 'Space Grotesk',sans-serif;color:#3c3934;margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
+body.ar .insp-desc{font:400 12.5px/1.75 var(--ar)}
+.specs{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
+.specs .v{font-size:10.5px;margin-top:3px;letter-spacing:.02em}
+body.ar .specs .v{font-size:11.5px}
+
+/* subsystems */
+.subs{list-style:none}
+.subs li{display:grid;grid-template-columns:20px 1fr auto;gap:4px;align-items:center;padding:4px 4px 4px 3px;border-inline-start:2px solid transparent;cursor:pointer;border-radius:2px}
+.subs li:hover{background:rgba(0,0,0,.03)}
+.subs li.on{border-inline-start-color:var(--acc);background:rgba(255,90,31,.06)}
+.subs li.on .n{color:var(--acc)}
+.subs .no{font-size:8.5px;color:var(--mute)}
+.subs .n{font-size:9.5px;letter-spacing:.13em;font-weight:700}
+.subs .d{font-size:7.5px;letter-spacing:.1em;color:var(--mute);margin-top:1px}
+body.ar .subs .n{font-size:11.5px;font-weight:600}
+body.ar .subs .d{font-size:9.5px}
+
+/* ---------- bottom ---------- */
+#bottom{position:fixed;left:calc(var(--col) + var(--gut) * 2);right:calc(var(--col) + var(--gut) * 2);bottom:var(--gut);z-index:5;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.dock{padding-bottom:9px}
+.docklist{display:flex;flex-wrap:wrap;gap:4px}
+.dchip{display:flex;align-items:center;gap:6px;font:600 8.5px var(--mono);letter-spacing:.12em;padding:5px 7px 5px 6px;background:#fff;border:1px solid var(--line);border-radius:3px;transition:all .15s}
+body.ar .dchip{font-size:11px;padding:3px 8px 3px 7px}
+.dchip em{font:normal 7.5px 'JetBrains Mono',monospace;color:var(--mute);letter-spacing:.04em}
+.dchip:hover{border-color:var(--ink)}
+.dchip.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.dchip.on em{color:#ffd9c9}
+.oplog .ph{margin-bottom:4px}
+.opl{display:flex;align-items:center;gap:14px}
+.playbtn{width:36px;height:36px;border-radius:50%;background:var(--acc);display:grid;place-items:center;flex:none;box-shadow:0 3px 10px rgba(255,90,31,.3)}
+.playbtn svg{width:12px;height:12px;fill:#fff}
+.opl-main{flex:1;min-width:0}
+.opl-top,.opl-bot{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.opact{font-size:9px;letter-spacing:.18em;color:var(--acc);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.ar .opact{font-size:11.5px}
+.track{position:relative;height:20px;margin:2px 0;cursor:pointer;direction:ltr}
+.track::before{content:'';position:absolute;left:0;right:0;top:9px;height:2px;background:#e1d9cd}
+.track .fill{position:absolute;left:0;top:9px;height:2px;background:var(--acc);width:0}
+.track .tick{position:absolute;top:4px;width:1px;height:12px;background:#a9a196}
+.track .tick:hover::after{content:attr(data-l);position:absolute;bottom:16px;left:50%;transform:translateX(-50%);white-space:nowrap;font:9px var(--mono);background:var(--ink);color:#fff;padding:4px 6px;border-radius:2px}
+.track .knob{position:absolute;top:3px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:#fff;border:2px solid var(--acc)}
+.opl-bot span{font-size:9px;letter-spacing:.1em;color:var(--mute)}
+body.ar .opl-bot span{font-size:10.5px}
+
+/* ---------- center HUD ---------- */
+.hud{position:fixed;z-index:3;pointer-events:none}
+#hudTL{top:96px;left:calc(var(--col) + var(--gut) * 2 + 10px)}
+#hudTR{top:96px;right:calc(var(--col) + var(--gut) * 2 + 10px)}
+#hudMode{left:calc(var(--col) + var(--gut) * 2 + 10px);bottom:226px}
+#hudMode .k{display:block}
+#modeName{font:700 32px/1.1 var(--sans);color:var(--acc);letter-spacing:-.02em;margin:4px 0 6px}
+#crosses{top:74px;left:50%;transform:translateX(-50%);color:var(--acc);font-size:11px;letter-spacing:14px;opacity:.7;white-space:nowrap}
+#footer{position:fixed;bottom:2px;left:20px;right:20px;display:flex;justify-content:space-between;font-size:8px;letter-spacing:.22em;color:var(--mute);z-index:2;pointer-events:none}
+body.ar #footer{font-size:9.5px}
+#footer b{color:var(--acc);font-weight:400}
+
+/* labels */
+#leaders{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:3}
+#labels{position:fixed;inset:0;pointer-events:none;z-index:3}
+.lbl{position:absolute;left:0;top:0;padding:3px 5px;white-space:nowrap;pointer-events:auto;cursor:pointer;will-change:transform;background:rgba(251,249,245,.75);border-radius:2px}
+.lbl b{display:block;font-size:9.5px;letter-spacing:.16em;font-weight:700}
+.lbl b::before{content:'';display:inline-block;width:6px;height:6px;background:var(--acc);margin-inline-end:7px;vertical-align:1px}
+.lbl span{display:block;font-size:7.5px;letter-spacing:.14em;color:var(--mute);margin-top:2px;margin-inline-start:13px}
+body.ar .lbl b{font-size:11.5px;font-weight:600}
+body.ar .lbl span{font-size:9.5px}
+#tip{position:fixed;z-index:8;pointer-events:none;background:var(--ink);color:#fff;font-size:9.5px;letter-spacing:.14em;padding:5px 8px;border-radius:2px;opacity:0;transition:opacity .12s;white-space:nowrap}
+body.ar #tip{font-size:11.5px}
+#tip i{font-style:normal;color:var(--acc);margin-inline-start:8px}
+
+/* loader */
+#loader{position:fixed;inset:0;background:var(--bg);z-index:20;display:grid;place-items:center;transition:opacity .8s}
+#loader div{text-align:center}
+#loader b{display:block;font:700 26px 'Space Grotesk',sans-serif;letter-spacing:-.02em}
+#loader .bar{width:200px;height:2px;background:#e1d9cd;margin:14px auto 0;overflow:hidden}
+#loader .bar i{display:block;height:100%;width:40%;background:var(--acc);animation:load 1s infinite ease-in-out}
+@keyframes load{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}
+
+/* ---------- view-only mode: cards slide away while the user works in 3D ---------- */
+#bottom{transition:transform .4s cubic-bezier(.2,.8,.2,1),opacity .3s}
+#left,#right{transition:transform .4s cubic-bezier(.2,.8,.2,1),opacity .3s}
+.hud{transition:opacity .3s}
+body.immersive #left{transform:translateX(calc(-100% - 30px));opacity:0;pointer-events:none}
+body.immersive #right{transform:translateX(calc(100% + 30px));opacity:0;pointer-events:none}
+body.immersive #bottom{transform:translateY(calc(100% + 30px));opacity:0;pointer-events:none}
+body.immersive #hudMode,body.immersive #hudTL,body.immersive #hudTR{opacity:0}
+.showui{position:fixed;left:50%;bottom:18px;z-index:7;transform:translate(-50%,90px);opacity:0;pointer-events:none;transition:transform .4s cubic-bezier(.2,.8,.2,1),opacity .3s;
+  font:600 9.5px var(--mono);letter-spacing:.18em;padding:9px 14px;background:var(--ink);color:#fff;border-radius:20px;box-shadow:0 4px 16px rgba(0,0,0,.18)}
+body.ar .showui{font-size:12px;padding:7px 16px}
+body.immersive .showui{transform:translate(-50%,0);opacity:1;pointer-events:auto}
+.showui:hover{background:var(--acc)}
+
+/* ---------- responsive ---------- */
+@media (max-width:1440px){ .gload{width:170px} .metric{min-width:76px;padding:0 10px} }
+@media (max-width:1180px){
+  .metrics{display:none}
+  .hbtns{margin-left:auto}
+  .drawer{display:block}
+  body:not(.show-left) #left{transform:translateX(calc(-100% - 30px))}
+  body:not(.show-right) #right{transform:translateX(calc(100% + 30px))}
+  #bottom{left:var(--gut);right:var(--gut)}
+  #hudTL,#hudMode{left:20px} #hudTR{right:20px}
+}
+@media (max-width:700px){
+  header{height:56px}
+  .logo{width:auto;padding:0 12px}
+  .logo svg{width:26px;height:26px}
+  .logo b{display:none}
+  .title{padding:9px 10px 0}
+  .title .k,.title .subt{display:none}
+  .title h1{font-size:18px}
+  .hbtns{padding:12px 8px 0 0;gap:4px}
+  #left,#right{top:64px;bottom:auto;max-height:calc(100% - 250px);left:8px;right:8px;width:auto}
+  #bottom{left:8px;right:8px;bottom:8px;gap:6px}
+  .dock .ph,.oplog .ph{display:none}
+  .docklist{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+  .dchip{flex:none}
+  .panel{padding:8px 10px}
+  #hudTL,#hudTR,#crosses,#footer{display:none}
+  #hudMode{bottom:160px;left:12px}
+  #modeName{font-size:24px}
+}
+</style>
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+}}
+</script>
+</head>
+<body>
+<canvas id="scene" tabindex="0" aria-label="3D pumpjack model"></canvas>
+<svg id="leaders"></svg>
+<div id="labels"></div>
+<div id="tip"></div>
+
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 48 48" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 15 L34 11"/><path d="M34 6 q8 5 4 15"/><path d="M38 21 v17"/><path d="M20 13 L14 42 M20 13 L26 42"/><path d="M8 15 L10 32"/><circle cx="10" cy="34" r="4"/><path d="M4 42 h40"/>
+    </svg>
+    <b>PJ-320</b>
+  </div>
+  <div class="title">
+    <span class="k" data-i18n="kicker"></span>
+    <h1><span data-i18n="title"></span> <span class="sl">/</span></h1>
+    <div class="subt" data-i18n="subt"></div>
+  </div>
+  <div class="metrics">
+    <div class="metric gload">
+      <div class="top"><span class="k" data-i18n="gload"></span><span class="k" id="hGpct" style="color:var(--ink)">0%</span></div>
+      <div class="segs" id="gsegs"></div>
+      <div class="top"><span class="k" data-i18n="idle"></span><span class="k" data-i18n="rated"></span><span class="k" data-i18n="peak"></span></div>
+    </div>
+    <div class="metric"><span class="k" data-i18n="unitid"></span><div class="v">PJ320-0417</div></div>
+    <div class="metric"><span class="k" data-i18n="runtime"></span><div class="v" id="hRuntime">00:00:00</div></div>
+    <div class="metric"><span class="k" data-i18n="status"></span><div class="v"><span class="dot"></span><span id="hStatus"></span></div></div>
+    <div class="metric"><span class="k" data-i18n="field"></span><div class="v" data-i18n="fieldv"></div></div>
+  </div>
+  <div class="hbtns">
+    <button class="chip drawer" id="tglLeft" data-i18n="data"></button>
+    <button class="chip drawer" id="tglRight" data-i18n="parts"></button>
+    <div class="lang" role="group" aria-label="Language"><button data-lang="en">EN</button><button data-lang="ar">عربي</button></div>
+  </div>
+</header>
+
+<div id="crosses" class="hud">+ + + + + + + + + + + + + +</div>
+<div id="hudTL" class="hud k" data-i18n="model"></div>
+<div id="hudTR" class="hud k"><span data-i18n="isolate"></span> · <span id="isoTxt"></span></div>
+<div id="hudMode" class="hud">
+  <span class="k" data-i18n="opmode"></span>
+  <div id="modeName"></div>
+  <span class="k" id="modeSub"></span>
+</div>
+
+<!-- LEFT: live data -->
+<aside id="left">
+  <section class="panel">
+    <div class="ph"><b data-i18n="p_stroke"></b><i>01</i></div>
+    <div class="row">
+      <div><div class="big" id="vSpm"></div><div class="k" style="margin-top:5px" data-i18n="spm_l"></div></div>
+      <div class="ta-end"><div class="big sm" id="vStroke"></div><div class="k" style="margin-top:5px" data-i18n="len_l"></div></div>
+    </div>
+    <canvas class="mini" id="spark"></canvas>
+    <div class="grid3">
+      <div><span class="k" data-i18n="count"></span><div class="v" id="vStrokes">0</div></div>
+      <div><span class="k" data-i18n="dir"></span><div class="v" id="vDir">—</div></div>
+      <div><span class="k" data-i18n="vel"></span><div class="v" id="vVel">0</div></div>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="ph"><b data-i18n="p_dyno"></b><i>02</i></div>
+    <div class="row"><span class="k" data-i18n="load"></span><span class="k" data-i18n="pos"></span></div>
+    <canvas class="dyno" id="dyno"></canvas>
+    <div class="grid3">
+      <div><span class="k" data-i18n="pprl"></span><div class="v" id="vPprl">0</div></div>
+      <div><span class="k" data-i18n="mprl"></span><div class="v" id="vMprl">0</div></div>
+      <div><span class="k" data-i18n="fill"></span><div class="v">92 %</div></div>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="ph"><b data-i18n="p_power"></b><i>03</i></div>
+    <div class="row">
+      <div><div class="big" id="vKw">0</div><div class="k" style="margin-top:5px" data-i18n="shaft"></div></div>
+      <div class="bars" id="pbars"></div>
+    </div>
+    <div class="grid3">
+      <div><span class="k" data-i18n="draw"></span><div class="v" id="vAmps">0</div></div>
+      <div><span class="k" data-i18n="motor"></span><div class="v" id="vRpm">0</div></div>
+      <div><span class="k" data-i18n="torque"></span><div class="v" id="vTorque">0</div></div>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="ph"><b data-i18n="p_ctrl"></b><i>04</i></div>
+    <div class="btnrow" style="margin-top:0">
+      <button class="chip on" id="btnRun"></button>
+      <button class="chip" id="btnHome" data-i18n="reset"></button>
+    </div>
+    <div class="slider">
+      <div class="row"><span class="k" data-i18n="speed"></span><span class="v" id="spmLbl"></span></div>
+      <input type="range" id="rSpm" min="0" max="12" step="0.1" value="7" aria-label="Pump speed">
+    </div>
+    <div class="slider">
+      <div class="row"><span class="k" data-i18n="explode"></span><span class="v" id="expLbl">0 %</span></div>
+      <input type="range" id="rExp" min="0" max="100" step="1" value="0" aria-label="Explode amount">
+    </div>
+    <div class="btnrow">
+      <button class="chip" data-view="front" data-i18n="v_front"></button>
+      <button class="chip" data-view="side" data-i18n="v_side"></button>
+      <button class="chip" data-view="top" data-i18n="v_top"></button>
+      <button class="chip" data-view="iso" data-i18n="v_iso"></button>
+    </div>
+  </section>
+</aside>
+
+<!-- RIGHT: inspector + display + subsystems -->
+<aside id="right">
+  <section class="panel" id="inspector"></section>
+  <section class="panel">
+    <div class="ph"><b data-i18n="p_display"></b><i>06</i></div>
+    <div class="chips" id="displayChips">
+      <button class="chip" data-t="labels" data-i18n="t_labels"></button>
+      <button class="chip" data-t="explode" data-i18n="t_explode"></button>
+      <button class="chip" data-t="cut" data-i18n="t_cut"></button>
+      <button class="chip" data-t="xray" data-i18n="t_xray"></button>
+      <button class="chip" data-t="down" data-i18n="t_down"></button>
+      <button class="chip" data-t="turn" data-i18n="t_turn"></button>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="ph"><b data-i18n="p_subs"></b><i>07</i></div>
+    <ul class="subs" id="subs"></ul>
+  </section>
+</aside>
+
+<!-- BOTTOM: parts dock + operation log -->
+<div id="bottom">
+  <section class="panel dock">
+    <div class="ph"><b data-i18n="p_asm"></b><i data-i18n="asm_hint"></i></div>
+    <div class="docklist" id="dock"></div>
+  </section>
+  <section class="panel oplog">
+    <div class="ph"><b data-i18n="p_log"></b><i>09</i></div>
+    <div class="opl">
+      <button class="playbtn" id="play" aria-label="Play or pause tour"><svg viewBox="0 0 16 16" id="playIco"><rect x="3" y="2" width="3.4" height="12"/><rect x="9.6" y="2" width="3.4" height="12"/></svg></button>
+      <div class="opl-main">
+        <div class="opl-top"><span class="k" data-i18n="start"></span><span class="opact" id="opAction"></span><span class="k" data-i18n="end"></span></div>
+        <div class="track" id="track"><div class="fill" id="tFill"></div><div class="knob" id="tKnob"></div></div>
+        <div class="opl-bot"><span id="opTime">00:00 / 00:00</span><span id="opCount"></span></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<button class="showui" id="showUI" data-i18n="showui"></button>
+<div id="footer"><span data-i18n="foot_l"></span><span><span data-i18n="foot_r"></span> <b>//////</b></span></div>
+
+<div id="loader"><div><b>PJ-320</b><div class="bar"><i></i></div></div></div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { Sky } from 'three/addons/objects/Sky.js';
+
+const V3 = THREE.Vector3, TAU = Math.PI * 2;
+const $ = s => document.querySelector(s);
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const smooth = t => t * t * (3 - 2 * t);
+const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+/* =====================================================================
+   1. RENDERER / SCENE / CAMERA
+   ===================================================================== */
+const canvas = $('#scene');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+let DPR = Math.min(window.devicePixelRatio || 1, 2);
+renderer.setPixelRatio(DPR);
+renderer.setSize(innerWidth, innerHeight, false);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = .62;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.localClippingEnabled = true;
+
+const BG = 0xf1ede6;
+const scene = new THREE.Scene();
+const HAZE = new THREE.Color(0xd9c8ad);
+scene.fog = new THREE.FogExp2(HAZE, 0.0085);
+const pmrem = new THREE.PMREMGenerator(renderer);
+const SUN_DIR = new V3().setFromSphericalCoords(1, THREE.MathUtils.degToRad(90 - 24), THREE.MathUtils.degToRad(215));   // late-afternoon sun
+const sky = new Sky(); sky.scale.setScalar(4000);
+Object.assign(sky.material.uniforms, {});
+sky.material.uniforms.turbidity.value = 9; sky.material.uniforms.rayleigh.value = 1.6;
+sky.material.uniforms.mieCoefficient.value = .006; sky.material.uniforms.mieDirectionalG.value = .85;
+sky.material.uniforms.sunPosition.value.copy(SUN_DIR);
+{ const envScene = new THREE.Scene(); const s2 = sky.clone(); envScene.add(s2); scene.environment = pmrem.fromScene(envScene, 0).texture; }
+scene.add(sky);
+scene.environmentIntensity = .55;
+
+const camera = new THREE.PerspectiveCamera(34, innerWidth / innerHeight, 0.03, 400);
+camera.position.set(30, 22, 44);
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 0.3;
+controls.maxDistance = 120;
+controls.zoomToCursor = true;
+controls.maxPolarAngle = Math.PI / 2 - 0.03;
+controls.autoRotateSpeed = 0.7;
+controls.target.set(-1.4, 2.9, 0);
+
+scene.add(new THREE.HemisphereLight(0xcfe0f2, 0xb08a5c, 0.55));
+const sun = new THREE.DirectionalLight(0xffe2b8, 4.2);
+sun.position.copy(SUN_DIR).multiplyScalar(30).add(new V3(-1.5, 0, 0));
+sun.castShadow = true;
+sun.shadow.mapSize.set(4096, 4096);
+Object.assign(sun.shadow.camera, { left: -16, right: 16, top: 16, bottom: -16, near: 1, far: 80 });
+sun.shadow.bias = -0.0004;
+sun.shadow.normalBias = 0.02;
+sun.target.position.set(-1.5, 0, 0);
+scene.add(sun, sun.target);
+const fill = new THREE.DirectionalLight(0x9fb8d6, 0.35);
+fill.position.set(-12, 6, -8);
+scene.add(fill);
+
+const groundShadow = new THREE.Mesh(new THREE.PlaneGeometry(140, 140), new THREE.ShadowMaterial({ opacity: 0.16, transparent: true }));
+groundShadow.rotation.x = -Math.PI / 2;
+groundShadow.receiveShadow = true;
+scene.add(groundShadow);
+function sandTex(size, seedN) {
+  const c = document.createElement('canvas'); c.width = c.height = size; const g = c.getContext('2d');
+  g.fillStyle = '#b8966a'; g.fillRect(0, 0, size, size);
+  for (let i = 0; i < 260; i++) { const x = Math.random() * size, y = Math.random() * size, r = 20 + Math.random() * 120, gr = g.createRadialGradient(x, y, 0, x, y, r);
+    const dk = Math.random() < .5; gr.addColorStop(0, dk ? 'rgba(120,90,58,.22)' : 'rgba(222,196,150,.25)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2); }
+  for (let i = 0; i < 26000; i++) { const v = Math.random() < .5 ? 0 : 255; g.fillStyle = `rgba(${v},${v * .9},${v * .75},${Math.random() * .12})`; g.fillRect(Math.random() * size, Math.random() * size, 1 + Math.random() * 2, 1 + Math.random() * 2); }
+  for (let i = 0; i < 90; i++) { g.fillStyle = `rgba(90,80,70,${.3 + Math.random() * .4})`; const s = 2 + Math.random() * 5; g.beginPath(); g.ellipse(Math.random() * size, Math.random() * size, s, s * .7, Math.random() * 3, 0, TAU); g.fill(); }   // pebbles
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 16; return t;
+}
+const field = new THREE.Group(); scene.add(field);
+{ // rolling desert, flat near the pad
+  const G = new THREE.PlaneGeometry(900, 900, 220, 220); G.rotateX(-Math.PI / 2);
+  const pa = G.attributes.position;
+  for (let i = 0; i < pa.count; i++) {
+    const x = pa.getX(i), z = pa.getZ(i), r = Math.hypot(x + 2, z);
+    const h = (Math.sin(x * .021) * Math.cos(z * .017) * 2.4 + Math.sin(x * .053 + z * .031) * .9 + Math.sin(z * .09 + x * .02) * .35) * THREE.MathUtils.smoothstep(r, 26, 90);
+    pa.setY(i, h - .02);
+  }
+  G.computeVertexNormals();
+  const st = sandTex(1024); st.repeat.set(70, 70);
+  const ground = new THREE.Mesh(G, new THREE.MeshStandardMaterial({ map: st, roughness: .97, metalness: 0, transparent: true }));
+  ground.receiveShadow = true; field.add(ground); field.userData.ground = ground;
+  // compacted gravel pad + oil stains around the well
+  const pc = document.createElement('canvas'); pc.width = pc.height = 512; const g = pc.getContext('2d');
+  g.fillStyle = '#8f8678'; g.fillRect(0, 0, 512, 512);
+  for (let i = 0; i < 30000; i++) { const v = 60 + Math.random() * 120; g.fillStyle = `rgba(${v},${v * .95},${v * .88},.5)`; g.fillRect(Math.random() * 512, Math.random() * 512, 2, 2); }
+  for (let i = 0; i < 9; i++) { const x = 330 + Math.random() * 90, y = 200 + Math.random() * 110, r = 18 + Math.random() * 40, gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, 'rgba(25,20,14,.75)'); gr.addColorStop(1, 'rgba(25,20,14,0)'); g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2); }
+  const edge = g.createRadialGradient(256, 256, 150, 256, 256, 256); edge.addColorStop(0, 'rgba(0,0,0,0)'); edge.addColorStop(1, 'rgba(184,150,106,1)'); g.fillStyle = edge; g.fillRect(0, 0, 512, 512);
+  const pt = new THREE.CanvasTexture(pc); pt.colorSpace = THREE.SRGBColorSpace; pt.anisotropy = 8;
+  const pad = new THREE.Mesh(new THREE.CircleGeometry(15, 64).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ map: pt, roughness: 1, transparent: true, polygonOffset: true, polygonOffsetFactor: -2 }));
+  pad.position.set(-2, .005, 0); pad.receiveShadow = true; field.add(pad); field.userData.pad = pad;
+}
+const fm = (c, r = .7, m = .1) => new THREE.MeshStandardMaterial({ color: c, roughness: r, metalness: m });
+const FM = { tank: fm(0xd8d2c4, .55, .2), rust: fm(0x7a4a2c, .8, .3), steel: fm(0x8c9096, .45, .8), wood: fm(0x5a4632, .9), dark: fm(0x2d2f33, .6, .4), yellow: fm(0xd9a521, .5, .2), red: fm(0xa8321e, .6, .2) };
+function fmesh(geo, mat, x, y, z, ry = 0) { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.y = ry; m.castShadow = m.receiveShadow = true; field.add(m); return m; }
+{ // tank battery: 3 storage tanks with stairs + walkway
+  for (let i = 0; i < 3; i++) {
+    const x = -22 + i * 5.2, z = -14;
+    fmesh(new THREE.CylinderGeometry(2.2, 2.2, 6.5, 40), FM.tank, x, 3.25, z);
+    fmesh(new THREE.ConeGeometry(2.25, .5, 40), FM.tank, x, 6.75, z);
+    fmesh(new THREE.TorusGeometry(2.21, .04, 6, 48).rotateX(Math.PI / 2), FM.rust, x, .9, z);
+    fmesh(new THREE.BoxGeometry(.5, .04, 2), FM.dark, x, 6.6, z + 2.6);
+  }
+  fmesh(new THREE.BoxGeometry(14, .08, .9), FM.dark, -16.8, 6.6, -11.4);
+  for (let x = -23.5; x <= -10; x += 1.5) fmesh(new THREE.CylinderGeometry(.03, .03, 1, 6), FM.yellow, x, 7.1, -11);
+  fmesh(new THREE.BoxGeometry(14, .04, .04), FM.yellow, -16.8, 7.6, -11);
+  fmesh(new THREE.BoxGeometry(17, .5, 7), fm(0xa08a6a, .95), -16.8, .25, -14);   // containment berm
+  // separator / heater-treater
+  fmesh(new THREE.CylinderGeometry(.9, .9, 4.5, 28).rotateZ(Math.PI / 2), FM.tank, -10, 1.6, -6);
+  for (const x of [-11.6, -8.4]) fmesh(new THREE.BoxGeometry(.3, 1.2, 1.2), FM.dark, x, .6, -6);
+  fmesh(new THREE.CylinderGeometry(.2, .2, 3, 12), FM.dark, -10, 4.2, -6);
+}
+{ // flowline from the wellhead to the tanks, on supports
+  const pts = [new V3(8.3, .15, 1.75), new V3(10, .4, 4), new V3(6, .5, 7), new V3(-8, .5, 7), new V3(-12, .5, 0), new V3(-12, .5, -9), new V3(-14, .7, -10.5)];
+  const curve = new THREE.CatmullRomCurve3(pts, false, 'catmullrom', .1);
+  fmesh(new THREE.TubeGeometry(curve, 160, .09, 10), FM.steel, 0, 0, 0);
+  for (let t = .06; t < .98; t += .045) { const q = curve.getPointAt(t); fmesh(new THREE.BoxGeometry(.12, q.y, .12), FM.dark, q.x, q.y / 2, q.z); }
+}
+{ // power line poles + chain-link fence around the pad
+  for (let i = 0; i < 7; i++) {
+    const x = -40 + i * 16, z = 30;
+    fmesh(new THREE.CylinderGeometry(.13, .18, 9, 10), FM.wood, x, 4.5, z);
+    fmesh(new THREE.BoxGeometry(2.4, .12, .12), FM.wood, x, 8.4, z);
+    for (const dx of [-1, 1]) fmesh(new THREE.CylinderGeometry(.06, .06, .2, 8), fm(0x7aa6a0, .3, .1), x + dx, 8.55, z);
+  }
+  for (const dx of [-1, 1]) { const g = new THREE.BufferGeometry().setFromPoints(Array.from({ length: 97 }, (_, k) => { const x = -40 + k, sag = Math.sin(((x + 40) % 16) / 16 * Math.PI) * .7; return new V3(x + dx, 8.65 - sag, 30); })); field.add(new THREE.Line(g, new THREE.LineBasicMaterial({ color: 0x222222 }))); }
+  const fence = fm(0x9aa0a6, .5, .8), F0 = [-14, -9.5], F1 = [11, 9.5];
+  const post = (x, z) => fmesh(new THREE.CylinderGeometry(.04, .04, 1.8, 8), fence, x, .9, z);
+  const rail = (x, z, len, ry) => fmesh(new THREE.BoxGeometry(len, .03, .03), fence, x, 1.75, z, ry);
+  for (let x = F0[0]; x <= F1[0]; x += 2.5) { post(x, F0[1]); post(x, F1[1]); }
+  for (let z = F0[1]; z <= F1[1]; z += 2.5) { post(F0[0], z); post(F1[0], z); }
+  rail((F0[0] + F1[0]) / 2, F0[1], F1[0] - F0[0], 0); rail((F0[0] + F1[0]) / 2, F1[1], F1[0] - F0[0], 0);
+  rail(F0[0], (F0[1] + F1[1]) / 2, F1[1] - F0[1], Math.PI / 2); rail(F1[0], (F0[1] + F1[1]) / 2, F1[1] - F0[1], Math.PI / 2);
+  const mesh = new THREE.MeshStandardMaterial({ color: 0xaab0b6, metalness: .7, roughness: .5, transparent: true, opacity: .16, side: THREE.DoubleSide, depthWrite: false });
+  for (const [x, z, len, ry] of [[(F0[0] + F1[0]) / 2, F0[1], F1[0] - F0[0], 0], [(F0[0] + F1[0]) / 2, F1[1], F1[0] - F0[0], 0], [F0[0], 0, F1[1] - F0[1], Math.PI / 2], [F1[0], 0, F1[1] - F0[1], Math.PI / 2]]) {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(len, 1.7), mesh); m.position.set(x, .9, z); m.rotation.y = ry; field.add(m);
+  }
+}
+{ // scattered desert scrub + rocks
+  const bush = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(.5, 1), fm(0x6b6a3c, .95), 260), rock = new THREE.InstancedMesh(new THREE.DodecahedronGeometry(.4, 0), fm(0x8a7458, .95), 160), d = new THREE.Object3D();
+  let bi = 0, ri = 0;
+  for (let i = 0; i < 420; i++) {
+    const a = Math.random() * TAU, r = 18 + Math.pow(Math.random(), .6) * 140, x = Math.cos(a) * r, z = Math.sin(a) * r, s = .4 + Math.random();
+    d.position.set(x, s * .2, z); d.rotation.set(Math.random(), Math.random() * 6, Math.random()); d.scale.set(s, s * .6, s); d.updateMatrix();
+    if (i % 3 && bi < 260) bush.setMatrixAt(bi++, d.matrix); else if (ri < 160) rock.setMatrixAt(ri++, d.matrix);
+  }
+  bush.castShadow = rock.castShadow = true; field.add(bush, rock);
+}
+const grid = new THREE.GridHelper(70, 70, 0xd3cbbf, 0xe3dcd1);
+grid.position.y = 0.003;
+grid.material.transparent = true;
+grid.material.opacity = 0.75;
+grid.visible = false;
+
+// decorative orbit rings (the "drawn lines" look of the reference)
+const decor = new THREE.Group();
+decor.visible = false;
+function ring(r, op, dashed) {
+  const pts = new THREE.EllipseCurve(0, 0, r, r).getPoints(200).map(p => new V3(p.x, 0, p.y));
+  const g = new THREE.BufferGeometry().setFromPoints(pts);
+  const m = dashed
+    ? new THREE.LineDashedMaterial({ color: 0x9c958a, transparent: true, opacity: op, dashSize: .3, gapSize: .25 })
+    : new THREE.LineBasicMaterial({ color: 0x9c958a, transparent: true, opacity: op });
+  const l = new THREE.LineLoop(g, m);
+  if (dashed) l.computeLineDistances();
+  return l;
+}
+[[11.5, .35, false, [0, 0, 0], 0], [9, .28, true, [.95, 0, .35], .05], [12.5, .2, false, [1.25, .4, -.2], -.03], [7.5, .22, true, [-.6, 0, 1.1], .04]]
+  .forEach(([r, op, d, rot, spd]) => {
+    const l = ring(r, op, d);
+    l.rotation.set(...rot);
+    l.userData.spd = spd;
+    const holder = new THREE.Group();
+    holder.position.set(-1.4, r === 11.5 ? 0.01 : 3.5, 0);
+    holder.add(l);
+    decor.add(holder);
+  });
+
+/* =====================================================================
+   2. MATERIALS + PART SYSTEM
+   ===================================================================== */
+const MAT = {
+  paint:    () => new THREE.MeshStandardMaterial({ color: 0xefebe4, roughness: .42, metalness: .06 }),
+  orange:   () => new THREE.MeshStandardMaterial({ color: 0xff5a1f, roughness: .42, metalness: .05 }),
+  dark:     () => new THREE.MeshStandardMaterial({ color: 0x2a2c30, roughness: .5, metalness: .4 }),
+  steel:    () => new THREE.MeshStandardMaterial({ color: 0xbfc3c9, roughness: .24, metalness: .92 }),
+  rubber:   () => new THREE.MeshStandardMaterial({ color: 0x1b1c1e, roughness: .85, metalness: 0 }),
+  copper:   () => new THREE.MeshStandardMaterial({ color: 0xc8743c, roughness: .3, metalness: .8 }),
+  lam:      () => new THREE.MeshStandardMaterial({ color: 0x52575e, roughness: .38, metalness: .7 }),
+  concrete: () => new THREE.MeshStandardMaterial({ color: 0xdad4cb, roughness: .95, metalness: 0 }),
+  glass:    () => new THREE.MeshStandardMaterial({ color: 0xbcd0db, roughness: .08, metalness: .2, transparent: true, opacity: .2, depthWrite: false }),
+  smoke:    () => new THREE.MeshStandardMaterial({ color: 0x9aa1a8, roughness: .25, metalness: .6, transparent: true, opacity: .38, depthWrite: false }),
+  oil:      () => new THREE.MeshStandardMaterial({ color: 0x8a4d12, roughness: .12, metalness: .1, transparent: true, opacity: .6 }),
+  white:    () => new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .3, metalness: 0 }),
+};
+
+const parts = [], partById = {};
+const pickables = [];
+
+class Part {
+  constructor(id, info) {
+    Object.assign(this, info);
+    this.id = id;
+    this.root = new THREE.Group();
+    this.root.name = id;
+    scene.add(this.root);
+    this.mats = [];
+    this.cache = {};
+    this.explodeOff = new V3();
+    this.subs = [];          // {obj, off} – per-assembly teardown pieces
+    this.callouts = [];      // feature labels shown when selected
+    this.anchor = new THREE.Object3D();
+    this.root.add(this.anchor);
+    this.ghost = 1; this.hl = 0; this.open = 0; this.openT = 0;
+    this.clip = null; this.clipN = new V3(0, 0, -1); this.clipP = new V3();
+    parts.push(this);
+    partById[id] = this;
+  }
+  m(kind, cut = false) {
+    const key = kind + (cut ? '#cut' : '');
+    if (!this.cache[key]) {
+      const mt = MAT[kind]();
+      this.track(mt);
+      if (cut) {
+        mt.userData.cut = true;
+        mt.side = THREE.DoubleSide;
+        this.clip ||= new THREE.Plane(new V3(0, 0, -1), 1e4);
+        mt.clippingPlanes = [this.clip];
+        mt.clipShadows = true;
+      }
+      this.cache[key] = mt;
+    }
+    return this.cache[key];
+  }
+  track(mt) { mt.userData.base = mt.opacity; this.mats.push(mt); return mt; }
+  callout(parent, pos, title, note) {
+    const o = new THREE.Object3D();
+    if (parent.userData.spin) {
+      // spinning group: pin the label on its axis so it stays still instead of orbiting
+      o.position.set(parent.position.x, parent.position.y, parent.position.z + pos[2]);
+      parent.parent.add(o);
+    } else {
+      o.position.set(...pos);
+      parent.add(o);
+    }
+    this.callouts.push({ obj: o, title, note });
+  }
+  addSub(obj, off) { this.subs.push({ obj, off: new V3(...off) }); }
+}
+
+/* ---------- geometry helpers ---------- */
+function mk(geo, mat, parent, p = [0, 0, 0], r = [0, 0, 0]) {
+  const m = new THREE.Mesh(geo, mat);
+  m.position.set(...p);
+  m.rotation.set(...r);
+  m.castShadow = true;
+  m.receiveShadow = true;
+  parent.add(m);
+  return m;
+}
+const box = (w, h, d) => new THREE.BoxGeometry(w, h, d);
+const rbox = (w, h, d, r = .04) => new RoundedBoxGeometry(w, h, d, 3, r);
+const cyl = (rt, rb, h, s = 32) => new THREE.CylinderGeometry(rt, rb, h, s);
+function cylZ(r, h, s = 32) { const g = cyl(r, r, h, s); g.rotateX(Math.PI / 2); return g; }
+function cylX(r, h, s = 24) { const g = cyl(r, r, h, s); g.rotateZ(Math.PI / 2); return g; }
+function tubeZ(ro, ri, h, s = 48) {
+  const sh = new THREE.Shape(); sh.absarc(0, 0, ro, 0, TAU, false);
+  const ho = new THREE.Path(); ho.absarc(0, 0, ri, 0, TAU, true); sh.holes.push(ho);
+  const g = new THREE.ExtrudeGeometry(sh, { depth: h, bevelEnabled: false, curveSegments: s });
+  g.translate(0, 0, -h / 2);
+  return g;
+}
+function tubeY(ro, ri, h, s = 40) { const g = tubeZ(ro, ri, h, s); g.rotateX(Math.PI / 2); return g; }
+function sector(r1, r2, a0, a1, depth, seg = 48, bevel = 0) {
+  const s = new THREE.Shape();
+  s.absarc(0, 0, r2, a0, a1, false);
+  s.absarc(0, 0, r1, a1, a0, true);
+  s.closePath();
+  const g = new THREE.ExtrudeGeometry(s, { depth, curveSegments: seg, bevelEnabled: bevel > 0, bevelSize: bevel, bevelThickness: bevel, bevelSegments: 2 });
+  g.translate(0, 0, -depth / 2);
+  return g;
+}
+function strut(a, b, w, d, mat, parent) {
+  const A = new V3(...a), B = new V3(...b);
+  const m = mk(box(w, A.distanceTo(B), d), mat, parent);
+  m.position.copy(A).add(B).multiplyScalar(.5);
+  m.quaternion.setFromUnitVectors(new V3(0, 1, 0), B.clone().sub(A).normalize());
+  return m;
+}
+function gearGeo(teeth, r, depth, bore = .06) {
+  const pitch = TAU * r / teeth, tip = r + pitch * .3, root = r - pitch * .36, s = TAU / teeth;
+  const sh = new THREE.Shape();
+  for (let i = 0; i < teeth; i++) {
+    const a = i * s;
+    const pts = [[root, a], [tip, a + s * .22], [tip, a + s * .46], [root, a + s * .68]];
+    pts.forEach(([rr, aa], j) => {
+      const x = Math.cos(aa) * rr, y = Math.sin(aa) * rr;
+      (i === 0 && j === 0) ? sh.moveTo(x, y) : sh.lineTo(x, y);
+    });
+  }
+  sh.closePath();
+  const hb = new THREE.Path(); hb.absarc(0, 0, bore, 0, TAU, true); sh.holes.push(hb);
+  if (r > .4) for (let i = 0; i < 6; i++) {
+    const a = i / 6 * TAU, h = new THREE.Path();
+    h.absarc(Math.cos(a) * r * .58, Math.sin(a) * r * .58, r * .16, 0, TAU, true);
+    sh.holes.push(h);
+  }
+  const g = new THREE.ExtrudeGeometry(sh, { depth, bevelEnabled: true, bevelSize: .008, bevelThickness: .008, bevelSegments: 1, curveSegments: 16 });
+  g.translate(0, 0, -depth / 2);
+  return g;
+}
+const boltGeo = new THREE.CylinderGeometry(.028, .028, .045, 6);
+function bolts(mat, parent, list, axis = 'y', scale = 1) {
+  const im = new THREE.InstancedMesh(boltGeo, mat, list.length);
+  const d = new THREE.Object3D();
+  list.forEach((q, i) => {
+    d.position.set(...q);
+    d.rotation.set(axis === 'z' ? Math.PI / 2 : 0, 0, axis === 'x' ? Math.PI / 2 : 0);
+    d.scale.setScalar(scale);
+    d.updateMatrix();
+    im.setMatrixAt(i, d.matrix);
+  });
+  parent.add(im);
+  return im;
+}
+function hull(points) {
+  points.sort((a, b) => a.x - b.x || a.y - b.y);
+  const cr = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+  const lo = [], up = [];
+  for (const p of points) { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p); }
+  for (let i = points.length - 1; i >= 0; i--) { const p = points[i]; while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], p) <= 0) up.pop(); up.push(p); }
+  up.pop(); lo.pop();
+  return lo.concat(up);
+}
+
+/* =====================================================================
+   3. MACHINE GEOMETRY CONSTANTS (meters)
+   ===================================================================== */
+const P = { x: 0, y: 6.0 };          // saddle (center) bearing
+const C = { x: -3.4, y: 2.1 };       // crankshaft (gearbox low-speed shaft)
+const CR = 0.9;                      // crank radius (wrist pin)
+const PL = 4.0;                      // pitman length
+const BK = 3.4;                      // rear beam arm (pivot -> equalizer)
+const HA = 4.2;                      // horsehead arc radius (front arm)
+const WX = HA + 0.03;                // well axis x
+const YC0 = 3.2;                     // carrier bar height at mid-stroke
+const IV = { x: -1.034, y: -0.277 }; // intermediate shaft (gearbox local)
+const JV = { x: -1.743, y: -0.402 }; // input shaft (gearbox local)
+const JW = { x: C.x + JV.x, y: C.y + JV.y };
+const MOTOR = { x: -6.9, y: 0.98, z: 0.5 };
+const BELTZ = 1.5;
+const R_GEAR = 12.5;                 // input shaft turns per crank turn
+const R_BELT = .42 / .16;            // motor turns per input turn
+
+/* ---------- part catalogue ---------- */
+const INFO = {
+  motor:   { no: '01', short: 'MOTOR', name: 'Prime Mover', ar: 'المحرك الكهربائي', sub: 'NEMA D · 75 HP · 1180 RPM',
+    desc: 'مصدر الحركة للوحدة كلها. محرك حثّي ثلاثي الأطوار بيلف بسرعة عالية، والسيور بتنقل حركته لصندوق التروس.',
+    specs: [['Rated', '75 HP · 56 kW'], ['Speed', '1180 RPM'], ['Supply', '460 V · 3Ø'], ['Frame', 'TEFC · 365T']], view: [-.75, .95, -.7] },
+  belts:   { no: '02', short: 'BELTS', name: 'V-Belt Drive', ar: 'السيور والبكرات', sub: '3 × 5V BANDED · 2.6 : 1',
+    desc: 'بتنقل العزم من بكرة المحرك الصغيرة للبكرة الكبيرة على عمود دخول صندوق التروس، ودي أول مرحلة تخفيض سرعة.',
+    specs: [['Ratio', '2.63 : 1'], ['Belts', '3 × 5V-1500'], ['Motor sheave', 'Ø 320 mm'], ['Unit sheave', 'Ø 840 mm']], view: [-.15, .3, 1] },
+  brake:   { no: '03', short: 'BRAKE', name: 'Band Brake', ar: 'الفرامل', sub: 'EXTERNAL BAND · RATCHET LEVER',
+    desc: 'فرامل حزام على عمود الدخول، بتوقف الأذرع وتثبتها في أي زاوية وقت الصيانة.',
+    specs: [['Type', 'External band'], ['Drum', 'Ø 600 mm'], ['Actuation', 'Ratchet lever'], ['Hold', '100 % torque']], view: [-.35, .35, -1] },
+  gearbox: { no: '04', short: 'GEARBOX', name: 'Gear Reducer', ar: 'صندوق التروس', sub: 'API 320D · DOUBLE REDUCTION',
+    desc: 'بيخفض السرعة على مرحلتين ويضاعف العزم جدًا عشان يلف الأذرع ببطء وبقوة كبيرة. جواه ترس كبير وترس وسيط وترس دخول صغير.',
+    specs: [['Rating', '320,000 in-lb'], ['Ratio', '12.5 : 1'], ['Stages', '2 · herringbone'], ['Oil', 'ISO VG 220 · 95 L']], view: [.25, .35, 1] },
+  cranks:  { no: '05', short: 'CRANKS', name: 'Cranks & Counterweights', ar: 'الأذرع والأثقال الموازنة', sub: '2 × CRANK · 2 × CW BLOCK',
+    desc: 'الأذرع بتحول الدوران لحركة ترددية، والأثقال بتوازن وزن القضبان والسائل عشان المحرك ما يشيلش الحمل كله في الطلعة.',
+    specs: [['Radius', '0.90 m'], ['CW mass', '2 × 1,850 kg'], ['Max moment', '412 kN·m'], ['Rotation', 'CCW']], view: [.45, .3, 1] },
+  pitman:  { no: '06', short: 'PITMAN', name: 'Pitman Arms & Equalizer', ar: 'أذرع التوصيل والموازن', sub: '2 × PITMAN · 4.0 M',
+    desc: 'بتربط الأذرع بذيل العارضة؛ والموازن بيوزع الحمل بالتساوي على الذراعين.',
+    specs: [['Length', '4.00 m'], ['Section', 'Tubular 140×120'], ['Wrist pin', 'Ø 90 mm'], ['Equalizer', 'Ø 200 mm']], view: [.5, .25, 1] },
+  beam:    { no: '07', short: 'BEAM', name: 'Walking Beam', ar: 'العارضة المتأرجحة', sub: 'W24 × 84 · 7.05 M',
+    desc: 'العارضة الرئيسية اللي بتتأرجح حول محمل السرج زي المرجيحة: الذيل ينزل فالرأس يطلع، والعكس.',
+    specs: [['Section', 'W24 × 84'], ['Length', '7.05 m'], ['Front arm', '4.20 m'], ['Rear arm', '3.40 m']], view: [.3, .45, 1] },
+  samson:  { no: '08', short: 'SAMSON', name: 'Samson Post', ar: 'القائم الرئيسي (السامسون)', sub: '3-LEG A-FRAME · 5.6 M',
+    desc: 'الهيكل اللي شايل العارضة كلها، وفي قمته محمل السرج اللي العارضة بتلف عليه، ومعاه سلم ومنصة للصيانة.',
+    specs: [['Height', '5.60 m'], ['Legs', '3 · square tube'], ['Bearing', 'Spherical roller'], ['Access', 'Ladder + deck']], view: [.6, .3, 1] },
+  horsehead: { no: '09', short: 'HORSEHEAD', name: 'Horsehead', ar: 'رأس الحصان', sub: 'ARC FACE · R 4.20 M',
+    desc: 'وشه مقوّس على شكل قوس مركزه محمل السرج بالظبط، عشان الحبل ينزل رأسي دايمًا فوق البئر مهما العارضة اتحركت.',
+    specs: [['Face radius', '4.20 m'], ['Arc', '51°'], ['Latch', 'Pin · swing-away'], ['Face', 'Grooved plate']], view: [.35, .22, 1] },
+  bridle:  { no: '10', short: 'BRIDLE', name: 'Bridle & Carrier Bar', ar: 'اللجام وحامل القضيب', sub: '2 × 1-1/8" WIRE ROPE',
+    desc: 'حبلين صلب نازلين من رأس الحصان شايلين حامل القضيب اللي ماسك القضيب المصقول بمشبك.',
+    specs: [['Rope', '2 × 1-1/8" 6×19'], ['Carrier', 'Forged · 30 t'], ['Clamp', '2-bolt rod clamp'], ['Load cell', '50 t']], view: [.45, .1, 1] },
+  wellhead: { no: '11', short: 'WELLHEAD', name: 'Polished Rod & Wellhead', ar: 'القضيب المصقول ورأس البئر', sub: '1-1/2" ROD · STUFFING BOX',
+    desc: 'القضيب المصقول بيتحرك لفوق وتحت جوه علبة الحشو اللي بتمنع التسريب، والزيت بيطلع من الخط الجانبي.',
+    specs: [['Rod', '1-1/2" × 26 ft'], ['Stuffing box', 'Dual pack'], ['BOP', 'Rod ram · manual'], ['Flowline', '3" · 300 psi']], view: [.7, .35, 1] },
+  downhole: { no: '12', short: 'DOWNHOLE', name: 'Downhole Pump', ar: 'مضخة قاع البئر', sub: 'RHBC 2-1/4" · 1,620 M',
+    desc: 'في قاع البئر: مكبس جوه أسطوانة وصمامين بكورة. في الطلعة الصمام الثابت يفتح والزيت يدخل الأسطوانة، وفي النزلة الصمام المتحرك يفتح والزيت يعدّي فوق المكبس.',
+    specs: [['Type', 'RHBC insert'], ['Bore', '2-1/4"'], ['Depth', '1,620 m'], ['Rods', 'Grade D · 7/8"']], view: [.8, .15, 1] },
+  base:    { no: '13', short: 'BASE', name: 'Base & Skid', ar: 'القاعدة', sub: 'STEEL SKID · CONCRETE PAD',
+    desc: 'القاعدة الحديد اللي كل الأجزاء متثبتة عليها، فوق قاعدة خرسانة مسلحة.',
+    specs: [['Skid', '2 × W12 rails'], ['Length', '9.70 m'], ['Pad', '10.8 × 3.6 m'], ['Anchors', '16 × M30']], view: [.4, .6, 1] },
+};
+
+/* =====================================================================
+   4. BUILDERS — one function per assembly
+   ===================================================================== */
+const INFO_X = {
+  motor:    { shortAr: 'المحرك', subAr: 'NEMA D · 75 حصان · 1180 لفة/د',
+    specsAr: [['القدرة', '75 حصان · 56 ك.وات'], ['السرعة', '1180 لفة/د'], ['الكهرباء', '460 فولت · 3 فاز'], ['الهيكل', 'مقفول · 365T']],
+    descEn: 'The power source for the whole unit. A three-phase induction motor spins fast, and the belts carry its motion to the gear reducer.' },
+  belts:    { shortAr: 'السيور', subAr: '3 سيور 5V · نسبة 2.6 : 1',
+    specsAr: [['النسبة', '2.63 : 1'], ['السيور', '3 × 5V-1500'], ['بكرة المحرك', 'Ø 320 مم'], ['بكرة الوحدة', 'Ø 840 مم']],
+    descEn: 'Carries torque from the small motor sheave to the large sheave on the gearbox input shaft. This is the first speed-reduction stage.' },
+  brake:    { shortAr: 'الفرامل', subAr: 'حزام خارجي · ذراع سقاطة',
+    specsAr: [['النوع', 'حزام خارجي'], ['الطنبورة', 'Ø 600 مم'], ['التشغيل', 'ذراع سقاطة'], ['التثبيت', '100% من العزم']],
+    descEn: 'A band brake on the input shaft. It stops the cranks and holds them at any angle during maintenance.' },
+  gearbox:  { shortAr: 'التروس', subAr: 'API 320D · تخفيض على مرحلتين',
+    specsAr: [['التحمل', '320,000 رطل·بوصة'], ['النسبة', '12.5 : 1'], ['المراحل', '2 · تروس مزدوجة'], ['الزيت', 'ISO VG 220 · 95 لتر']],
+    descEn: 'Cuts the speed in two stages and multiplies the torque, so the cranks turn slowly and with great force. Inside: a bull gear, an intermediate gear and a small input pinion.' },
+  cranks:   { shortAr: 'الأذرع', subAr: 'ذراعين · ثقلين موازنين',
+    specsAr: [['نصف القطر', '0.90 م'], ['وزن الثقل', '2 × 1,850 كجم'], ['أقصى عزم', '412 ك.ن·م'], ['الدوران', 'عكس عقارب الساعة']],
+    descEn: 'The cranks turn rotation into up-and-down motion. The counterweights balance the weight of the rods and fluid, so the motor doesn\u2019t carry the whole load on the upstroke.' },
+  pitman:   { shortAr: 'التوصيل', subAr: 'ذراعين توصيل · 4.0 م',
+    specsAr: [['الطول', '4.00 م'], ['المقطع', 'ماسورة 140×120'], ['مسمار الرسغ', 'Ø 90 مم'], ['الموازن', 'Ø 200 مم']],
+    descEn: 'Connect the cranks to the tail of the walking beam. The equalizer shares the load evenly between both arms.' },
+  beam:     { shortAr: 'العارضة', subAr: 'W24 × 84 · 7.05 م',
+    specsAr: [['المقطع', 'W24 × 84'], ['الطول', '7.05 م'], ['الذراع الأمامي', '4.20 م'], ['الذراع الخلفي', '3.40 م']],
+    descEn: 'The main beam rocks on the saddle bearing like a seesaw: when the tail goes down the head goes up, and back again.' },
+  samson:   { shortAr: 'القائم', subAr: 'هيكل A بثلاث أرجل · 5.6 م',
+    specsAr: [['الارتفاع', '5.60 م'], ['الأرجل', '3 · مواسير مربعة'], ['المحمل', 'رولمان كروي'], ['الوصول', 'سلم + منصة']],
+    descEn: 'The frame that carries the whole beam. The saddle bearing sits on top, with a ladder and a service deck.' },
+  horsehead:{ shortAr: 'رأس الحصان', subAr: 'وجه مقوّس · نصف قطر 4.20 م',
+    specsAr: [['نصف القطر', '4.20 م'], ['القوس', '51°'], ['القفل', 'مسمار · بيتلف'], ['الوجه', 'لوح مخدد']],
+    descEn: 'Its face is an arc centred exactly on the saddle bearing, so the rope always hangs straight down over the well, however the beam moves.' },
+  bridle:   { shortAr: 'اللجام', subAr: 'حبلين صلب 1-1/8 بوصة',
+    specsAr: [['الحبل', '2 × 1-1/8" 6×19'], ['الحامل', 'مطروق · 30 طن'], ['المشبك', 'بمسمارين'], ['حساس الحمل', '50 طن']],
+    descEn: 'Two steel ropes hang from the horsehead and carry the carrier bar, which clamps the polished rod.' },
+  wellhead: { shortAr: 'رأس البئر', subAr: 'قضيب 1-1/2 بوصة · علبة حشو',
+    specsAr: [['القضيب', '1-1/2" × 26 قدم'], ['علبة الحشو', 'حشو مزدوج'], ['مانع الانفجار', 'يدوي'], ['خط التدفق', '3" · 300 psi']],
+    descEn: 'The polished rod strokes up and down through the stuffing box, which stops leaks. The oil leaves through the side flowline.' },
+  downhole: { shortAr: 'قاع البئر', subAr: 'مضخة RHBC · عمق 1,620 م',
+    specsAr: [['النوع', 'RHBC مدمجة'], ['القطر', '2-1/4"'], ['العمق', '1,620 م'], ['القضبان', 'درجة D · 7/8"']],
+    descEn: 'At the bottom of the well: a plunger inside a barrel, with two ball valves. On the upstroke the standing valve opens and oil fills the barrel; on the downstroke the traveling valve opens and the oil passes above the plunger.' },
+  base:     { shortAr: 'القاعدة', subAr: 'قاعدة حديد · خرسانة',
+    specsAr: [['القاعدة', '2 × مجرى W12'], ['الطول', '9.70 م'], ['الخرسانة', '10.8 × 3.6 م'], ['المسامير', '16 × M30']],
+    descEn: 'The steel skid that every part is bolted to, sitting on a reinforced concrete pad.' },
+};
+for (const id in INFO_X) Object.assign(INFO[id], INFO_X[id]);
+const CALL_AR = {
+  'CONCRETE PAD': ['قاعدة خرسانية', '10.8 × 3.6 م · حديد تسليح'], 'SKID RAIL': ['مجرى القاعدة', 'W12 × 40 · ملحوم'], 'GEAR PEDESTAL': ['قاعدة التروس', 'مرفوعة 0.6 م'],
+  'SADDLE BEARING': ['محمل السرج', 'Ø 180 مم · رولمان كروي'], 'SERVICE DECK': ['منصة الصيانة', 'أرضية شبك · سور حماية'], 'LADDER': ['السلم', '16 درجة · على الرجل الخلفية'], 'FRONT LEGS': ['الأرجل الأمامية', 'هيكل A · مواسير 200×200'],
+  'TOP FLANGE': ['الشفة العلوية', 'W24 × 84 · 7.05 م'], 'TAIL BEARING': ['محمل الذيل', 'مسمار الموازن Ø 110 مم'], 'SADDLE CLAMP': ['مشبك السرج', '8 مسامير M24'],
+  'ARC FACE': ['الوجه المقوّس', 'نصف قطر 4.20 م · مركزه السرج'], 'LATCH PIN': ['مسمار القفل', 'بيتلف وقت الصيانة'], 'LIGHTENING HOLES': ['فتحات التخفيف', '3 فتحات بشفة'],
+  'CARRIER BAR': ['حامل القضيب', 'مطروق · 30 طن'], 'ROD CLAMP': ['مشبك القضيب', 'بمسمارين · القضيب المصقول'], 'WIRE ROPE': ['الحبل الصلب', '2 × 1-1/8" · 6×19'],
+  'STUFFING BOX': ['علبة الحشو', 'حشو مزدوج · حلمة شحم'], 'ROD BOP': ['مانع الانفجار', 'صمامات يدوية'], 'WING VALVE': ['الصمام الجانبي', 'بوابة 3" · 2000 psi'], 'PRESSURE GAUGE': ['عداد الضغط', '0–600 psi'],
+  'STATOR': ['الجزء الثابت', '48 مجرى · ملفات نحاس'], 'ROTOR': ['العضو الدوّار', 'قفص سنجابي · 24 قضيب'], 'END WINDINGS': ['أطراف الملفات', 'عزل فئة F'], 'COOLING FAN': ['مروحة التبريد', '8 ريش'],
+  'MOTOR SHEAVE': ['بكرة المحرك', 'Ø 320 · 3 مجاري'], 'UNIT SHEAVE': ['بكرة الوحدة', 'Ø 840 · 5 أذرع'], 'V-BELTS': ['السيور', '3 × 5V-1500'], 'BELT GUARD': ['واقي السيور', 'معيار OSHA'],
+  'BRAKE DRUM': ['طنبورة الفرامل', 'Ø 600 · عمود الدخول'], 'BRAKE BAND': ['حزام الفرامل', 'بطانة منسوجة'], 'RATCHET LEVER': ['ذراع السقاطة', 'تعشيق وقفل'],
+  'BULL GEAR': ['الترس الكبير', '60 سنة · العمود البطيء'], 'INTERMEDIATE': ['الترس الوسيط', '40 / 16 سنة'], 'INPUT PINION': ['ترس الدخول', '12 سنة · العمود السريع'], 'OIL SUMP': ['حوض الزيت', 'ISO VG 220 · 95 لتر'], 'INSPECTION HATCH': ['فتحة الكشف', 'بجوان · 8 مسامير'],
+  'COUNTERWEIGHT': ['الثقل الموازن', '1,850 كجم · قابل للضبط'], 'WRIST PIN': ['مسمار الرسغ', 'Ø 90 · تركيب مخروطي'], 'CRANK ARM': ['ذراع الكرنك', 'صلب مصبوب · 3 فتحات'],
+  'EQUALIZER': ['الموازن', 'بيوزع الحمل يمين وشمال'], 'WRIST BEARING': ['محمل الرسغ', 'ذاتي الضبط'], 'UPPER BEARING': ['المحمل العلوي', 'متثبت في الموازن'],
+  'SURFACE CASING': ['الغلاف السطحي', '13-3/8" · مُسمنت'], 'PRODUCTION TUBING': ['مواسير الإنتاج', '2-7/8" EUE'], 'SUCKER RODS': ['القضبان الماصة', '7/8" · وصلة كل 8 م'], 'PLUNGER': ['المكبس', '2-1/4" · مطلي'],
+  'TRAVELING VALVE': ['الصمام المتحرك', 'كورة وقاعدة · بيتحرك مع القضبان'], 'STANDING VALVE': ['الصمام الثابت', 'كورة وقاعدة ثابتة'], 'PERFORATIONS': ['الثقوب', '6 ثقوب/قدم · رمل زيتي'],
+};
+
+function buildBase(p) {
+  const r = p.root, w = p.m('paint'), d = p.m('dark'), o = p.m('orange');
+  mk(rbox(10.8, .3, 3.6, .04), p.m('concrete'), r, [-3.1, -.05, 0]);
+  for (const z of [-.95, .95]) {
+    mk(box(9.7, .26, .05), d, r, [-3.15, .25, z]);
+    mk(box(9.7, .035, .32), w, r, [-3.15, .385, z]);
+    mk(box(9.7, .035, .32), w, r, [-3.15, .118, z]);
+    mk(box(.06, .29, .34), o, r, [1.72, .25, z]);
+    mk(box(.06, .29, .34), o, r, [-8.02, .25, z]);
+  }
+  for (const x of [1.35, -2.3, -5.4, -7.7]) mk(box(.3, .3, x > 0 ? 2.9 : 2.2), w, r, [x, .25, 0]);
+  mk(rbox(2.6, .6, 1.3, .03), w, r, [C.x - .5, .7, 0]);
+  mk(box(1.3, .03, 1.25), d, r, [MOTOR.x, .4, MOTOR.z]);
+  for (const z of [-1.2, 1.2]) mk(box(.5, .05, .5), d, r, [1.35, .425, z]);
+  mk(box(.5, .05, .5), d, r, [-2.3, .425, 0]);
+  const list = [];
+  for (let x = -8.2; x <= 2; x += 1.36) for (const z of [-1.55, 1.55]) list.push([x, .12, z]);
+  bolts(d, r, list, 'y', 1.6);
+  p.anchor.position.set(-3, .4, 1.3);
+  p.callout(r, [-3.1, .1, 1.8], 'CONCRETE PAD', '10.8 × 3.6 m · rebar mat');
+  p.callout(r, [-6, .4, .95], 'SKID RAIL', 'W12 × 40 · welded');
+  p.callout(r, [C.x - .5, .9, .65], 'GEAR PEDESTAL', 'raised 0.6 m');
+}
+
+function buildSamson(p) {
+  const r = p.root, w = p.m('paint'), d = p.m('dark'), o = p.m('orange');
+  const legs = [[[1.35, .42, -1.2], [.3, 5.56, -.42]], [[1.35, .42, 1.2], [.3, 5.56, .42]], [[-2.3, .42, 0], [-.3, 5.56, 0]]];
+  legs.forEach(([a, b]) => strut(a, b, .2, .2, w, r));
+  const L3 = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+  for (const t of [.3, .62]) {
+    const A = L3(...legs[0], t), B = L3(...legs[1], t), R = L3(...legs[2], t);
+    strut(A, B, .1, .1, w, r);
+    strut(A, R, .08, .08, d, r);
+    strut(B, R, .08, .08, d, r);
+  }
+  strut(L3(...legs[0], .04), L3(...legs[1], .3), .06, .06, d, r);
+  strut(L3(...legs[1], .04), L3(...legs[0], .3), .06, .06, d, r);
+  mk(box(1.0, .08, 1.1), d, r, [0, 5.6, 0]);
+  // saddle bearing (separate teardown piece)
+  const saddle = new THREE.Group(); r.add(saddle); p.addSub(saddle, [0, 1.2, 0]);
+  for (const z of [-.42, .42]) {
+    mk(rbox(.5, .32, .2, .03), o, saddle, [0, 5.8, z]);
+    mk(cylZ(.16, .24), d, saddle, [0, 6.0, z]);
+  }
+  mk(cylZ(.09, 1.12), p.m('steel'), saddle, [0, 6, 0]);
+  // platform + railing
+  mk(box(1.4, .05, 1.4), d, r, [0, 5.15, 0]);
+  for (const x of [-.68, .68]) for (const z of [-.68, .68]) mk(cyl(.025, .025, .7, 8), w, r, [x, 5.5, z]);
+  for (const z of [-.68, .68]) mk(box(1.38, .04, .04), o, r, [0, 5.85, z]);
+  for (const x of [-.68, .68]) mk(box(.04, .04, 1.38), o, r, [x, 5.85, 0]);
+  // ladder along rear leg
+  const a = [-2.15, .42], b = [-.55, 5.15];
+  for (const z of [.2, .5]) strut([a[0], a[1], z], [b[0], b[1], z], .04, .04, d, r);
+  const n = 16;
+  for (let i = 1; i < n; i++) {
+    const t = i / n;
+    mk(cylZ(.016, .3, 6), w, r, [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, .35]);
+  }
+  p.anchor.position.set(.85, 3.3, .9);
+  p.callout(saddle, [0, 6, .55], 'SADDLE BEARING', 'Ø 180 mm · spherical roller');
+  p.callout(r, [0, 5.15, .7], 'SERVICE DECK', 'grating · toe-board rail');
+  p.callout(r, [-1.3, 2.9, .35], 'LADDER', '16 rungs · rear leg');
+  p.callout(r, [.9, 2.5, -.95], 'FRONT LEGS', 'A-frame · 200 × 200 tube');
+}
+
+function buildBeam(p) {
+  const pv = new THREE.Group(); pv.position.set(P.x, P.y, 0); p.root.add(pv); p.pivot = pv;
+  const w = p.m('paint'), d = p.m('dark'), o = p.m('orange');
+  const x0 = -3.75, x1 = 3.3, len = x1 - x0, cx = (x0 + x1) / 2, yc = .55;
+  mk(box(len, .56, .05), w, pv, [cx, yc, 0]);
+  mk(box(len, .05, .44), w, pv, [cx, yc + .3, 0]);
+  mk(box(len, .05, .44), w, pv, [cx, yc - .3, 0]);
+  for (let x = x0 + .35; x < x1 - .1; x += .7) for (const z of [-.12, .12]) mk(box(.03, .52, .17), w, pv, [x, yc, z]);
+  for (const z of [-.3, .3]) mk(box(.7, .32, .04), d, pv, [0, .12, z]);
+  mk(box(.42, .26, .32), d, pv, [-BK, .13, 0]);
+  mk(cylZ(.15, .46), o, pv, [-BK, 0, 0]);
+  mk(box(.05, .62, .46), o, pv, [x0 - .025, yc, 0]);
+  mk(box(1.8, .1, .055), o, pv, [-1.6, yc, 0]);
+  const list = [];
+  for (let x = x0 + .2; x < x1; x += .35) for (const z of [-.16, .16]) list.push([x, yc + .33, z]);
+  bolts(d, pv, list);
+  p.anchor = new THREE.Object3D(); p.anchor.position.set(-1.6, yc + .3, 0); pv.add(p.anchor);
+  p.callout(pv, [1.6, yc + .32, 0], 'TOP FLANGE', 'W24 × 84 · 7.05 m');
+  p.callout(pv, [-BK, 0, .25], 'TAIL BEARING', 'equalizer pin Ø 110 mm');
+  p.callout(pv, [0, .12, .3], 'SADDLE CLAMP', 'bolted · 8 × M24');
+}
+
+function buildHorsehead(p) {
+  const pv = new THREE.Group(); pv.position.set(P.x, P.y, 0); p.root.add(pv); p.pivot = pv;
+  const w = p.m('paint'), d = p.m('dark'), o = p.m('orange');
+  const a0 = -.5, a1 = .4, Rf = HA - .05;
+  const s = new THREE.Shape();
+  s.moveTo(Rf * Math.cos(a0), Rf * Math.sin(a0));
+  s.absarc(0, 0, Rf, a0, a1, false);
+  s.lineTo(3.4, 1.3); s.lineTo(3.15, 1.0); s.lineTo(3.15, .1); s.lineTo(3.3, -1.2);
+  s.closePath();
+  for (const [x, y, rr] of [[3.62, .35, .17], [3.6, -.55, .15], [3.64, -1.35, .12]]) {
+    const h = new THREE.Path(); h.absarc(x, y, rr, 0, TAU, true); s.holes.push(h);
+  }
+  const g = new THREE.ExtrudeGeometry(s, { depth: .44, bevelEnabled: true, bevelSize: .02, bevelThickness: .02, bevelSegments: 2, curveSegments: 56 });
+  g.translate(0, 0, -.22);
+  mk(g, w, pv);
+  for (const z of [-.245, .245]) mk(sector(3.82, Rf - .04, a0 + .03, a1 - .03, .02, 56), o, pv, [0, 0, z]);
+  mk(sector(Rf - .01, HA, a0, a1, .3, 64), d, pv);
+  for (const z of [-.17, .17]) mk(sector(Rf - .01, HA + .07, a0, a1, .03, 64), d, pv, [0, 0, z]);
+  mk(cylZ(.07, .54), d, pv, [3.22, .95, 0]);
+  mk(cylZ(.07, .54), d, pv, [3.22, .15, 0]);
+  const top = new THREE.Object3D(); top.position.set(HA * Math.cos(a1), HA * Math.sin(a1), 0); top.rotation.z = a1; pv.add(top);
+  mk(box(.12, .14, .38), o, top, [.02, 0, 0]);
+  // wire rope wrapped on the arc (rebuilt as the beam moves)
+  p.ropeArcs = [-.1, .1].map(z => { const m = mk(new THREE.BufferGeometry(), p.m('steel'), pv, [0, 0, z]); m.castShadow = false; return m; });
+  p.a1 = a1; p.lastTheta = 99;
+  p.anchor = new THREE.Object3D(); p.anchor.position.set(3.7, .6, .24); pv.add(p.anchor);
+  p.callout(pv, [HA * Math.cos(.15), HA * Math.sin(.15), .2], 'ARC FACE', 'R 4.20 m · centred on saddle');
+  p.callout(pv, [3.22, .95, .27], 'LATCH PIN', 'swing-away for workover');
+  p.callout(pv, [3.62, .35, .24], 'LIGHTENING HOLES', '3 × flanged cut-outs');
+}
+
+function buildBridle(p) {
+  const r = p.root, d = p.m('dark'), o = p.m('orange');
+  const rg = cyl(.025, .025, 1, 8); rg.translate(0, -.5, 0);
+  p.ropes = [-.1, .1].map(z => mk(rg, p.m('steel'), r, [WX, P.y, z]));
+  const car = new THREE.Group(); r.add(car); p.carrier = car;
+  mk(rbox(.18, .12, .58, .02), d, car, [0, 0, 0]);
+  for (const z of [-.1, .1]) mk(cyl(.035, .06, .16, 12), o, car, [0, .13, z]);
+  mk(cyl(.07, .07, .1, 16), o, car, [0, .11, 0]);
+  mk(rbox(.16, .1, .16, .02), p.m('steel'), car, [0, .21, 0]);
+  bolts(d, car, [[.09, .21, -.04], [.09, .21, .04]], 'x', 1.2);
+  p.anchor = new THREE.Object3D(); p.anchor.position.set(.05, .1, .3); car.add(p.anchor);
+  p.callout(car, [0, 0, .29], 'CARRIER BAR', 'forged · 30 t rating');
+  p.callout(car, [0, .21, .08], 'ROD CLAMP', '2-bolt · polished rod');
+  p.callout(r, [WX, 5, .1], 'WIRE ROPE', '2 × 1-1/8" · 6×19 IWRC');
+}
+
+function buildWellhead(p) {
+  const r = p.root, w = p.m('paint'), d = p.m('dark'), o = p.m('orange'), st = p.m('steel'), X = WX;
+  mk(rbox(1.6, .2, 1.6, .03), p.m('concrete'), r, [X, 0, 0]);
+  mk(cyl(.34, .34, .18), d, r, [X, .19, 0]);
+  const fl = []; for (let i = 0; i < 8; i++) { const a = i / 8 * TAU; fl.push([X + Math.cos(a) * .29, .29, Math.sin(a) * .29]); }
+  bolts(st, r, fl);
+  mk(cyl(.2, .2, .5), w, r, [X, .53, 0]);
+  mk(cyl(.3, .3, .1), o, r, [X, .83, 0]);
+  mk(cyl(.13, .13, .42), w, r, [X, 1.09, 0]);
+  mk(cylZ(.1, .7), w, r, [X, 1.09, .35]);
+  mk(rbox(.24, .28, .24, .03), o, r, [X, 1.09, .62]);
+  mk(cyl(.015, .015, .25, 8), st, r, [X, 1.3, .62]);
+  mk(new THREE.TorusGeometry(.13, .015, 8, 28), d, r, [X, 1.42, .62], [Math.PI / 2, 0, 0]);
+  mk(cylZ(.09, 1.0), w, r, [X, 1.09, 1.25]);
+  mk(new THREE.SphereGeometry(.1, 16, 12), w, r, [X, 1.09, 1.75]);
+  mk(cyl(.09, .09, .95), w, r, [X, .62, 1.75]);
+  mk(cylX(.09, 3.0), w, r, [X + 1.5, .15, 1.75]);
+  // gauge
+  mk(cylX(.02, .2, 8), st, r, [X + .2, 1.15, 0]);
+  mk(cylX(.08, .04), d, r, [X + .32, 1.15, 0]);
+  mk(cylX(.065, .045), p.m('white'), r, [X + .33, 1.15, 0]);
+  // rod BOP + stuffing box (teardown lifts them)
+  const top = new THREE.Group(); r.add(top); p.addSub(top, [0, 1.1, 0]);
+  mk(rbox(.5, .18, .24, .02), d, top, [X, 1.38, 0]);
+  mk(cylX(.025, .9, 8), st, top, [X, 1.38, 0]);
+  for (const s of [-1, 1]) mk(new THREE.TorusGeometry(.06, .012, 6, 18), o, top, [X + s * .45, 1.38, 0], [0, Math.PI / 2, 0]);
+  mk(cyl(.11, .13, .36), w, top, [X, 1.65, 0]);
+  mk(cyl(.09, .11, .08), o, top, [X, 1.87, 0]);
+  mk(cyl(.02, .02, .12, 8), d, top, [X + .12, 1.75, 0], [0, 0, Math.PI / 2]);
+  p.rod = mk(cyl(.045, .045, 3.4, 20), st, r, [X, 0, 0]);
+  p.anchor.position.set(X + .1, 1.7, .2);
+  p.callout(top, [X, 1.7, .12], 'STUFFING BOX', 'dual pack · grease fitting');
+  p.callout(top, [X + .25, 1.38, .12], 'ROD BOP', 'manual rams');
+  p.callout(r, [X, 1.09, .75], 'WING VALVE', '3" gate · 2,000 psi');
+  p.callout(r, [X + .34, 1.15, 0], 'PRESSURE GAUGE', '0–600 psi');
+}
+
+function buildMotor(p) {
+  const r = p.root;
+  const g = new THREE.Group(); g.position.set(MOTOR.x, MOTOR.y, MOTOR.z); r.add(g);
+  const H = p.m('paint', true), Hd = p.m('dark', true), Ho = p.m('orange', true);
+  mk(cylZ(.46, 1.1, 56), H, g);
+  for (let i = 0; i < 30; i++) {
+    const a = i / 30 * TAU;
+    if (Math.sin(a) < -.75) continue;
+    mk(box(.028, .09, 1.0), H, g, [Math.cos(a) * .5, Math.sin(a) * .5, 0], [0, 0, a - Math.PI / 2]);
+  }
+  mk(cylZ(.44, .12, 48), Hd, g, [0, 0, .61]);
+  mk(cylZ(.44, .12, 48), Hd, g, [0, 0, -.61]);
+  mk(cylZ(.14, .1), Hd, g, [0, 0, .71]);
+  mk(rbox(.3, .2, .34, .03), H, g, [0, .56, .12]);
+  mk(cylZ(.035, .1, 12), Hd, g, [0, .56, .33]);
+  for (const x of [-.32, .32]) for (const z of [-.38, .38]) mk(box(.16, .14, .2), Hd, g, [x, -.47, z]);
+  mk(new THREE.TorusGeometry(.055, .015, 8, 18), Ho, g, [0, .52, -.32], [0, Math.PI / 2, 0]);
+  mk(box(.01, .14, .24), Ho, g, [.52, .05, .2]);
+  // rear fan cowl (teardown)
+  const cowl = new THREE.Group(); g.add(cowl); p.addSub(cowl, [0, 0, -.9]);
+  mk(tubeZ(.47, .44, .34, 48), Hd, cowl, [0, 0, -.84]);
+  for (const rr of [.12, .24, .36]) mk(new THREE.TorusGeometry(rr, .01, 6, 40), p.m('dark'), cowl, [0, 0, -1.0]);
+  for (let i = 0; i < 6; i++) mk(box(.012, .9, .012), p.m('dark'), cowl, [0, 0, -1.0], [0, 0, i / 6 * Math.PI]);
+  // stator + windings (sectioned with housing)
+  mk(tubeZ(.42, .265, .82, 48), p.m('lam', true), g);
+  for (const z of [-.47, .47]) mk(new THREE.TorusGeometry(.34, .065, 12, 40), p.m('copper', true), g, [0, 0, z]);
+  // rotor (slides out on teardown)
+  const rotorWrap = new THREE.Group(); g.add(rotorWrap); p.addSub(rotorWrap, [0, 0, 1.9]);
+  const rotor = new THREE.Group(); rotorWrap.add(rotor); p.rotor = rotor; rotor.userData.spin = true;
+  mk(cylZ(.25, .8, 40), p.m('lam'), rotor);
+  const bars = new THREE.InstancedMesh(box(.035, .035, .84), p.m('copper'), 24);
+  const dm = new THREE.Object3D();
+  for (let i = 0; i < 24; i++) { const a = i / 24 * TAU; dm.position.set(Math.cos(a) * .25, Math.sin(a) * .25, 0); dm.rotation.set(0, 0, a); dm.updateMatrix(); bars.setMatrixAt(i, dm.matrix); }
+  rotor.add(bars);
+  for (const z of [-.43, .43]) mk(tubeZ(.26, .1, .05), p.m('copper'), rotor, [0, 0, z]);
+  mk(cylZ(.06, 2.0, 20), p.m('steel'), rotor, [0, 0, .1]);
+  for (let i = 0; i < 8; i++) mk(box(.06, .3, .02), p.m('orange'), rotor, [Math.cos(i / 8 * TAU) * .2, Math.sin(i / 8 * TAU) * .2, -.86], [0, .4, i / 8 * TAU - Math.PI / 2]);
+  p.clipN.set(0, -1, 0); p.clipP.set(MOTOR.x, MOTOR.y, MOTOR.z);
+  p.anchor.position.set(MOTOR.x, MOTOR.y + .5, MOTOR.z + .3);
+  p.callout(g, [0, .3, 0], 'STATOR', '48 slots · Cu windings');
+  p.callout(rotor, [0, .25, .1], 'ROTOR', 'squirrel cage · 24 bars');
+  p.callout(g, [0, .37, .47], 'END WINDINGS', 'class F insulation');
+  p.callout(cowl, [0, .3, -1.0], 'COOLING FAN', 'TEFC · 8 blades');
+}
+
+function buildBelts(p) {
+  const r = p.root, st = p.m('steel'), d = p.m('dark');
+  const ms = new THREE.Group(); ms.position.set(MOTOR.x, MOTOR.y, BELTZ); r.add(ms); p.ms = ms; ms.userData.spin = true;
+  mk(cylZ(.16, .24, 32), st, ms);
+  mk(cylZ(.07, .3, 16), d, ms);
+  mk(box(.04, .03, .3), p.m('orange'), ms, [0, .07, 0]);
+  const is = new THREE.Group(); is.position.set(JW.x, JW.y, BELTZ); r.add(is); p.is = is; is.userData.spin = true;
+  mk(tubeZ(.42, .35, .24, 64), st, is);
+  mk(cylZ(.09, .3, 20), d, is);
+  for (let i = 0; i < 5; i++) { const a = i / 5 * TAU; mk(box(.06, .27, .07), p.m('paint'), is, [Math.cos(a) * .215, Math.sin(a) * .215, 0], [0, 0, a - Math.PI / 2]); }
+  for (const z of [-.07, 0, .07]) {
+    mk(new THREE.TorusGeometry(.165, .012, 6, 36), d, ms, [0, 0, z]);
+    mk(new THREE.TorusGeometry(.425, .012, 6, 72), d, is, [0, 0, z]);
+  }
+  const hullAt = off => {
+    const pts = [];
+    for (let i = 0; i < 96; i++) {
+      const a = i / 96 * TAU;
+      pts.push(new THREE.Vector2(MOTOR.x + Math.cos(a) * (.16 + off), MOTOR.y + Math.sin(a) * (.16 + off)));
+      pts.push(new THREE.Vector2(JW.x + Math.cos(a) * (.42 + off), JW.y + Math.sin(a) * (.42 + off)));
+    }
+    return hull(pts);
+  };
+  const bp = hullAt(.022);
+  for (const z of [-.07, 0, .07]) {
+    const path = new THREE.CurvePath();
+    for (let i = 0; i < bp.length; i++) {
+      const a = bp[i], b = bp[(i + 1) % bp.length];
+      path.add(new THREE.LineCurve3(new V3(a.x, a.y, BELTZ + z), new V3(b.x, b.y, BELTZ + z)));
+    }
+    const m = mk(new THREE.TubeGeometry(path, 260, .022, 6, true), p.m('rubber'), r);
+    m.castShadow = false;
+  }
+  // guard (open-front band + back plate)
+  const guard = new THREE.Group(); r.add(guard); p.addSub(guard, [0, 0, 1.1]);
+  const outer = hullAt(.17), inner = hullAt(.11);
+  const sh = new THREE.Shape(outer);
+  sh.holes.push(new THREE.Path(inner.slice().reverse()));
+  const gg = new THREE.ExtrudeGeometry(sh, { depth: .34, bevelEnabled: false });
+  gg.translate(0, 0, BELTZ - .17);
+  mk(gg, p.m('orange', true), guard);
+  const bg = new THREE.ExtrudeGeometry(new THREE.Shape(outer), { depth: .02, bevelEnabled: false });
+  bg.translate(0, 0, BELTZ - .19);
+  mk(bg, p.m('orange', true), guard);
+  p.clipN.set(0, 0, -1); p.clipP.set(-6, 1.3, BELTZ + .05);
+  p.anchor.position.set(-6.1, 1.9, BELTZ + .17);
+  p.callout(ms, [0, .16, .12], 'MOTOR SHEAVE', 'Ø 320 · 3-groove 5V');
+  p.callout(is, [0, .42, .12], 'UNIT SHEAVE', 'Ø 840 · 5 spokes');
+  p.callout(r, [-6, 1.55, BELTZ + .1], 'V-BELTS', '3 × 5V-1500 banded');
+  p.callout(guard, [-6.6, 1.6, BELTZ + .17], 'BELT GUARD', 'OSHA 1910.219');
+}
+
+function buildBrake(p) {
+  const r = p.root, d = p.m('dark'), o = p.m('orange');
+  const drum = new THREE.Group(); drum.position.set(JW.x, JW.y, -BELTZ); r.add(drum); p.drum = drum; drum.userData.spin = true;
+  mk(cylZ(.3, .16, 48), p.m('steel'), drum);
+  mk(cylZ(.1, .24, 20), d, drum);
+  for (let i = 0; i < 6; i++) mk(box(.03, .2, .02), d, drum, [Math.cos(i / 6 * TAU) * .19, Math.sin(i / 6 * TAU) * .19, -.09], [0, 0, i / 6 * TAU - Math.PI / 2]);
+  const band = new THREE.Group(); r.add(band); p.addSub(band, [0, 0, -.8]);
+  mk(new THREE.TorusGeometry(.32, .03, 8, 56, TAU * .8), o, band, [JW.x, JW.y, -BELTZ], [0, 0, .7]);
+  strut([JW.x - .3, JW.y - .12, -BELTZ], [-5.88, 1.35, -BELTZ], .03, .03, p.m('steel'), band);
+  strut([-6.0, .42, -BELTZ], [-5.85, 1.7, -BELTZ], .06, .06, d, r);
+  mk(new THREE.SphereGeometry(.075, 16, 12), o, r, [-5.845, 1.73, -BELTZ]);
+  mk(sector(.0, .35, Math.PI * .35, Math.PI * .65, .03, 12), d, r, [-5.98, .45, -BELTZ]);
+  p.anchor.position.set(JW.x, JW.y + .3, -BELTZ - .1);
+  p.callout(drum, [0, .3, -.08], 'BRAKE DRUM', 'Ø 600 · input shaft');
+  p.callout(band, [JW.x - .1, JW.y - .32, -BELTZ], 'BRAKE BAND', 'woven lining');
+  p.callout(r, [-5.85, 1.73, -BELTZ], 'RATCHET LEVER', 'set & lock');
+}
+
+function buildGearbox(p) {
+  const r = p.root;
+  const g = new THREE.Group(); g.position.set(C.x, C.y, 0); r.add(g);
+  const H = p.m('paint', true), Hd = p.m('dark', true), Ho = p.m('orange', true);
+  const lower = new THREE.Group(); g.add(lower);
+  const cover = new THREE.Group(); g.add(cover); p.addSub(cover, [0, 2.3, 0]);
+  mk(rbox(3.1, 1.1, 1.1, .08), H, lower, [-.5, -.55, 0]);
+  mk(box(3.26, .08, 1.24), Hd, lower, [-.5, -.04, 0]);
+  mk(rbox(3.1, 1.0, 1.1, .12), H, cover, [-.5, .5, 0]);
+  mk(box(3.26, .06, 1.24), Hd, cover, [-.5, .03, 0]);
+  mk(rbox(.8, .06, .5, .02), Ho, cover, [-.6, 1.03, 0]);
+  mk(cyl(.05, .07, .14, 12), Hd, cover, [.3, 1.07, .2]);
+  for (const x of [-1.6, .6]) mk(new THREE.TorusGeometry(.07, .02, 8, 16), Hd, cover, [x, 1.06, 0], [0, Math.PI / 2, 0]);
+  for (const [sx, sy, rr] of [[0, 0, .3], [IV.x, IV.y, .2], [JV.x, JV.y, .16]])
+    for (const z of [-.6, .6]) mk(cylZ(rr, .1), Hd, lower, [sx, sy, z]);
+  mk(box(.5, .26, .012), Ho, lower, [-1.2, -.55, .556]);
+  mk(cylZ(.05, .02, 16), p.m('glass'), lower, [.6, -.7, .56]);
+  const fb = [];
+  for (let x = -1.95; x <= .95; x += .29) for (const z of [-.58, .58]) fb.push([x, .02, z]);
+  bolts(Hd, lower, fb);
+  // internals (not sectioned)
+  mk(box(2.9, .34, 1.0), p.m('oil'), lower, [-.5, -.9, 0]);
+  const steel = p.m('steel'), brass = p.m('copper'), dk = p.m('dark');
+  const bull = new THREE.Group(); g.add(bull); p.bull = bull; bull.userData.spin = true;
+  mk(gearGeo(60, .85, .42, .12), steel, bull, [0, 0, .1]);
+  mk(cylZ(.12, 2.0, 24), steel, bull);
+  mk(cylZ(.2, .5, 24), dk, bull, [0, 0, .1]);
+  const inter = new THREE.Group(); inter.position.set(IV.x, IV.y, 0); g.add(inter); p.inter = inter; inter.userData.spin = true;
+  mk(gearGeo(16, .22, .42, .07), steel, inter, [0, 0, .1]);
+  mk(gearGeo(40, .55, .28, .07), brass, inter, [0, 0, -.36]);
+  mk(cylZ(.07, 1.14, 16), steel, inter);
+  const input = new THREE.Group(); input.position.set(JV.x, JV.y, 0); g.add(input); p.input = input; input.userData.spin = true;
+  mk(gearGeo(12, .17, .28, .06), steel, input, [0, 0, -.36]);
+  mk(cylZ(.06, 3.2, 16), steel, input);
+  p.clipN.set(0, 0, -1); p.clipP.set(C.x, C.y, 0);
+  p.anchor.position.set(C.x - .5, C.y + 1.0, .5);
+  p.callout(bull, [.6, .6, .3], 'BULL GEAR', '60 T · low-speed shaft');
+  p.callout(inter, [.4, .25, -.36], 'INTERMEDIATE', '40 T / 16 T');
+  p.callout(input, [0, .17, -.36], 'INPUT PINION', '12 T · high-speed');
+  p.callout(lower, [-.5, -.85, .45], 'OIL SUMP', 'ISO VG 220 · 95 L');
+  p.callout(cover, [-.6, 1.05, .2], 'INSPECTION HATCH', 'gasketed · 8 bolts');
+}
+
+function buildCranks(p) {
+  const r = p.root;
+  const cs = new THREE.Shape();
+  cs.absarc(0, 0, .34, Math.PI / 2, Math.PI * 1.5, false);
+  cs.lineTo(1.38, -.2); cs.lineTo(1.44, -.12); cs.lineTo(1.44, .12); cs.lineTo(1.38, .2);
+  cs.closePath();
+  for (const x of [.55, .72]) { const h = new THREE.Path(); h.absarc(x, 0, .045, 0, TAU, true); cs.holes.push(h); }
+  const crankGeo = new THREE.ExtrudeGeometry(cs, { depth: .12, bevelEnabled: true, bevelSize: .015, bevelThickness: .015, bevelSegments: 2 });
+  crankGeo.translate(0, 0, -.06);
+  const cwGeo = sector(1.0, 1.34, -.42, .42, .2, 32, .02);
+  p.arms = [];
+  for (const side of [-1, 1]) {
+    const sg = new THREE.Group(); r.add(sg); p.addSub(sg, [0, 0, side * 1.9]);
+    const arm = new THREE.Group(); arm.position.set(C.x, C.y, 0); sg.add(arm); p.arms.push(arm); arm.userData.spin = true;
+    mk(crankGeo, p.m('paint'), arm, [0, 0, side * .85]);
+    mk(cylZ(.22, .22, 28), p.m('dark'), arm, [0, 0, side * .85]);
+    mk(cwGeo, p.m('orange'), arm, [0, 0, side * 1.08]);
+    const bl = [];
+    for (const a of [-.25, 0, .25]) bl.push([Math.cos(a) * 1.17, Math.sin(a) * 1.17, side * 1.2]);
+    bolts(p.m('dark'), arm, bl, 'z', 1.6);
+    mk(cylZ(.07, .5, 16), p.m('steel'), arm, [CR, 0, side * 1.12]);
+    mk(cylZ(.1, .03, 16), p.m('dark'), arm, [0, 0, side * .97]);
+  }
+  p.anchor = new THREE.Object3D(); p.anchor.position.set(C.x, C.y, 1.2); p.arms[1].parent.add(p.anchor);
+  p.callout(p.arms[1], [1.2, .2, 1.19], 'COUNTERWEIGHT', '1,850 kg · adjustable');
+  p.callout(p.arms[1], [CR, 0, 1.36], 'WRIST PIN', 'Ø 90 · tapered fit');
+  p.callout(p.arms[1], [.3, .2, .92], 'CRANK ARM', 'cast steel · 3 holes');
+}
+
+function buildPitman(p) {
+  const r = p.root, w = p.m('paint'), d = p.m('dark'), o = p.m('orange');
+  p.rods = [];
+  for (const side of [-1, 1]) {
+    const sg = new THREE.Group(); r.add(sg); p.addSub(sg, [-.2, .5, side * 2.7]);
+    const rod = new THREE.Group(); sg.add(rod); p.rods.push({ g: rod, z: side * 1.3 });
+    mk(rbox(.12, PL - .3, .14, .03), w, rod, [0, PL / 2, 0]);
+    mk(cylZ(.13, .18, 24), o, rod);
+    mk(cylZ(.13, .18, 24), o, rod, [0, PL, 0]);
+    mk(box(.135, .4, .155), d, rod, [0, .45, 0]);
+    mk(box(.135, .3, .155), d, rod, [0, PL - .4, 0]);
+  }
+  const eqWrap = new THREE.Group(); r.add(eqWrap); p.addSub(eqWrap, [-.6, 1.4, 0]);
+  const eq = new THREE.Group(); eqWrap.add(eq); p.eq = eq;
+  mk(cylZ(.1, 2.8, 20), w, eq);
+  mk(rbox(.32, .24, .5, .03), d, eq);
+  for (const s of [-1, 1]) mk(cylZ(.11, .06, 20), o, eq, [0, 0, s * 1.42]);
+  p.anchor = new THREE.Object3D(); p.anchor.position.set(0, PL * .55, .1); p.rods[1].g.add(p.anchor);
+  p.callout(eq, [0, .1, .3], 'EQUALIZER', 'balances L/R pitman load');
+  p.callout(p.rods[1].g, [0, 0, .1], 'WRIST BEARING', 'self-aligning');
+  p.callout(p.rods[1].g, [0, PL, .1], 'UPPER BEARING', 'pinned to equalizer');
+}
+
+function buildDownhole(p) {
+  const r = p.root, X = WX;
+  const glass = p.m('glass', true), smoke = p.m('smoke', true), st = p.m('steel'), d = p.m('dark'), o = p.m('orange');
+  // strata cross-section behind the well
+  const layers = [[0, -1.6, 0xcbb18f, 'TOPSOIL'], [-1.6, -5, 0xe0cfa9, 'SANDSTONE'], [-5, -9, 0xa8a39b, 'SHALE'], [-9, -12.4, 0xd5cfc3, 'LIMESTONE'], [-12.4, -14.6, 0x8f8a83, 'CAP ROCK'], [-14.6, -16.8, 0x4d3b2d, 'OIL SAND']];
+  layers.forEach(([t, b, c]) => {
+    const m = p.track(new THREE.MeshStandardMaterial({ color: c, roughness: .95, transparent: true, opacity: .92 }));
+    const mesh = mk(box(9, t - b, .06), m, r, [X, (t + b) / 2, -1.1]);
+    mesh.castShadow = false;
+  });
+  const edge = new THREE.LineSegments(new THREE.EdgesGeometry(box(9, 16.8, 2.2)), p.track(new THREE.LineBasicMaterial({ color: 0x8d867b, transparent: true, opacity: .45 })));
+  edge.position.set(X, -8.4, 0); r.add(edge);
+  mk(tubeY(.48, .4, 3.6), p.m('smoke', true), r, [X, -1.8, 0]);
+  mk(tubeY(.4, .37, 3.6), glass, r, [X, -1.8, 0]);
+  mk(tubeY(.27, .25, 16.4), glass, r, [X, -8.1, 0]);
+  mk(tubeY(.14, .12, 12.2), smoke, r, [X, -5.1, 0]);
+  mk(tubeY(.15, .13, 3.8), p.m('steel', true), r, [X, -13.1, 0]);
+  mk(tubeY(.13, .05, .06), d, r, [X, -15.0, 0]);
+  mk(tubeY(.1, .08, 1.0), d, r, [X, -15.6, 0]);
+  const perf = [];
+  for (let y = -15.5; y > -16.2; y -= .14) for (let i = 0; i < 6; i++) { const a = i / 6 * TAU + y * 3; perf.push([X + Math.cos(a) * .27, y, Math.sin(a) * .27]); }
+  bolts(o, r, perf, 'x', 1.4);
+  const sBall = mk(new THREE.SphereGeometry(.07, 20, 14), o, r, [X, -14.92, 0]); p.sBall = sBall;
+  // moving string: rods + plunger + traveling valve
+  const rods = new THREE.Group(); r.add(rods); p.rods = rods;
+  mk(cyl(.035, .035, 12.45, 12), st, rods, [X, -6.175, 0]);
+  const cp = []; for (let y = -.8; y > -12.3; y -= 1.6) cp.push([X, y, 0]);
+  const cim = new THREE.InstancedMesh(cyl(.05, .05, .12, 12), d, cp.length);
+  const dm = new THREE.Object3D(); cp.forEach((q, i) => { dm.position.set(...q); dm.updateMatrix(); cim.setMatrixAt(i, dm.matrix); }); rods.add(cim);
+  mk(cyl(.12, .12, 1.1, 28), st, rods, [X, -13.0, 0]);
+  for (const y of [-12.6, -13.0, -13.4]) mk(cyl(.122, .122, .04, 28), o, rods, [X, y, 0]);
+  mk(tubeY(.12, .05, .06), d, rods, [X, -13.58, 0]);
+  const tBall = mk(new THREE.SphereGeometry(.065, 20, 14), st, rods, [X, -13.66, 0]); p.tBall = tBall;
+  // produced fluid particles inside the tubing
+  const N = 260, pos = new Float32Array(N * 3);
+  for (let i = 0; i < N; i++) {
+    const a = Math.random() * TAU, rr = .05 + Math.random() * .06;
+    pos[i * 3] = X + Math.cos(a) * rr; pos[i * 3 + 1] = -15 + Math.random() * 16; pos[i * 3 + 2] = Math.sin(a) * rr;
+  }
+  const pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  p.fluid = new THREE.Points(pg, p.track(new THREE.PointsMaterial({ color: 0x7a3f0f, size: .05, transparent: true, opacity: .9, depthWrite: false })));
+  r.add(p.fluid);
+  p.clipN.set(0, 0, -1); p.clipP.set(X, -8, 0);
+  p.anchor.position.set(X + .2, -12.2, .2);
+  p.callout(r, [X, -2.5, .4], 'SURFACE CASING', '13-3/8" · cemented');
+  p.callout(r, [X, -7, .14], 'PRODUCTION TUBING', '2-7/8" EUE');
+  p.callout(rods, [X, -5, .04], 'SUCKER RODS', '7/8" · couplings / 8 m');
+  p.callout(rods, [X, -13.0, .12], 'PLUNGER', 'spray-metal · 2-1/4"');
+  p.callout(rods, [X, -13.66, .07], 'TRAVELING VALVE', 'ball & seat · moves with rods');
+  p.callout(r, [X, -14.95, .08], 'STANDING VALVE', 'fixed ball & seat');
+  p.callout(r, [X, -15.8, .27], 'PERFORATIONS', '6 spf · oil sand');
+}
+
+const farJacks = [];
+function buildFarJacks() {
+  const src = new THREE.Group();
+  const stash = [];
+  for (const id of ['base', 'samson', 'gearbox', 'cranks', 'pitman', 'beam', 'horsehead', 'motor', 'belts']) {
+    partById[id].root.traverse(o => { stash.push([o, o.userData]); o.userData = {}; });     // userData links back to the part (circular): drop it for the copy
+    src.add(partById[id].root.clone(true));
+  }
+  for (const [o, u] of stash) o.userData = u;
+  src.traverse(o => { if (o.isMesh) { o.castShadow = true; o.material = o.material.clone(); o.material.transparent = false; o.material.opacity = 1; o.material.clippingPlanes = null; } });
+  [[-48, -40, .6], [36, -52, 2.1], [70, 10, -1.2], [-75, 22, .9], [12, -95, 2.8], [-30, -110, .2], [95, -60, 1.6]].forEach(([x, z, ry], i) => {
+    const j = src.clone(true); j.position.set(x, 0, z); j.rotation.y = ry; field.add(j);
+    const pivots = []; j.traverse(o => { if (o.name === '' && o.isGroup && Math.abs(o.position.y - 6) < .01 && Math.abs(o.position.x) < .01) pivots.push(o); });
+    farJacks.push({ pivots, ph: i * 1.3, spm: 5 + (i % 3) * 1.5 });
+  });
+}
+const builders = { motor: buildMotor, belts: buildBelts, brake: buildBrake, gearbox: buildGearbox, cranks: buildCranks, pitman: buildPitman,
+  beam: buildBeam, samson: buildSamson, horsehead: buildHorsehead, bridle: buildBridle, wellhead: buildWellhead, downhole: buildDownhole, base: buildBase };
+const EXPLODE = { motor: [-2.6, .2, 0], belts: [0, .2, 2.6], brake: [0, .2, -2.6], gearbox: [0, 0, 0], cranks: [0, 0, 0], pitman: [0, 0, 0],
+  beam: [0, 2.4, 0], samson: [0, 0, 0], horsehead: [1.9, 2.4, 0], bridle: [2.9, 1.2, 0], wellhead: [2.9, 0, 0], downhole: [0, 0, 0], base: [0, -1.1, 0] };
+for (const id of Object.keys(builders)) {
+  const p = new Part(id, INFO[id]);
+  builders[id](p);
+  p.explodeOff.set(...EXPLODE[id]);
+  p.root.traverse(o => { if (o.isMesh || o.isInstancedMesh) { o.userData.part = p; pickables.push(o); } });
+}
+requestAnimationFrame(() => { try { buildFarJacks(); } catch (e) { console.warn('far pumpjacks', e); } });
+const ORDER = ['motor', 'belts', 'brake', 'gearbox', 'cranks', 'pitman', 'beam', 'samson', 'horsehead', 'bridle', 'wellhead', 'downhole', 'base'];
+
+/* =====================================================================
+   5. KINEMATICS — 4-bar linkage solved every frame
+   ===================================================================== */
+function solve(phi) {
+  const qx = C.x + CR * Math.cos(phi), qy = C.y + CR * Math.sin(phi);
+  const dx = qx - P.x, dy = qy - P.y, dd = Math.hypot(dx, dy);
+  const a = (BK * BK - PL * PL + dd * dd) / (2 * dd), h = Math.sqrt(Math.max(0, BK * BK - a * a));
+  const mx = P.x + a * dx / dd, my = P.y + a * dy / dd;
+  const e1x = mx + h * dy / dd, e1y = my - h * dx / dd, e2x = mx - h * dy / dd, e2y = my + h * dx / dd;
+  const ex = e1x < e2x ? e1x : e2x, ey = e1x < e2x ? e1y : e2y;
+  let th = Math.atan2(ey - P.y, ex - P.x);
+  th = th > 0 ? th - Math.PI : th + Math.PI;
+  return { qx, qy, ex, ey, theta: th };
+}
+const sOf = phi => HA * solve(phi).theta;
+let S_MIN = 1e9, S_MAX = -1e9;
+for (let i = 0; i < 720; i++) { const s = sOf(i / 720 * TAU); S_MIN = Math.min(S_MIN, s); S_MAX = Math.max(S_MAX, s); }
+const STROKE_M = S_MAX - S_MIN, STROKE_IN = STROKE_M * 39.37;
+
+/* =====================================================================
+   6. STATE
+   ===================================================================== */
+const state = {
+  running: true, spm: 0, spmT: 7, phi: -Math.PI / 2,
+  explode: 0, explodeT: 0, cut: 0, cutT: 0, xray: 0, xrayT: 0, down: 0, downT: 0,
+  labels: true, turn: false, selected: null, isolate: false,
+};
+let hovered = null;
+
+/* =====================================================================
+   7. CAMERA MOVES
+   ===================================================================== */
+const VIEWS = {
+  home:  { p: [8.6, 8.4, 19.2], t: [-1.5, 2.6, 0] },
+  front: { p: [-1.5, 3.4, 22], t: [-1.5, 3.2, 0] },
+  side:  { p: [22, 4.2, .01], t: [-1.5, 3.2, 0] },
+  top:   { p: [-1.5, 24, .02], t: [-1.5, 0, 0] },
+  iso:   { p: [-14, 11, 15], t: [-1.5, 2.8, 0] },
+  tear:  { p: [13, 11.5, 22], t: [-1.2, 3.6, 0] },
+};
+let fly = null;
+function flyTo(pos, target, dur = 1.4) {
+  fly = { p0: camera.position.clone(), t0: controls.target.clone(), p1: new V3(...pos), t1: new V3(...target), t: 0, dur };
+}
+function flyView(name) { const v = VIEWS[name]; flyTo(v.p, v.t); }
+function focusPart(p, closer = 1) {
+  const box3 = new THREE.Box3().setFromObject(p.root);
+  if (p.id === 'downhole') box3.set(new V3(WX - 1.2, -16.2, -.8), new V3(WX + 1.2, -11, .8));
+  const c = box3.getCenter(new V3()), sz = box3.getSize(new V3());
+  const rad = Math.max(.6, sz.length() / 2);
+  const dist = rad / Math.sin(THREE.MathUtils.degToRad(camera.fov / 2)) * 1.55 * closer;
+  const dir = new V3(...(p.view || [.5, .4, 1])).normalize();
+  c.y -= rad * .22;   // keep the subject above the bottom dock
+  flyTo(c.clone().addScaledVector(dir, dist).toArray(), c.toArray());
+}
+
+/* =====================================================================
+   8. UI WIRING
+   ===================================================================== */
+const I18N = {
+  kicker: ['Beam pumping unit · conventional class I', 'وحدة ضخ بالعارضة · تقليدية فئة أولى'],
+  title: ['Ironhorse PJ-320', 'وحدة الضخ PJ-320'], subt: ['SUCKER-ROD LIFT / FIELD SIMULATOR', 'رفع بالقضبان الماصة / محاكي ميداني'],
+  gload: ['Gear load', 'حمل التروس'], idle: ['Idle', 'خامل'], rated: ['Rated', 'المقنن'], peak: ['Peak', 'الذروة'],
+  unitid: ['Unit ID', 'رقم الوحدة'], runtime: ['Runtime', 'زمن التشغيل'], status: ['Status', 'الحالة'], field: ['Field', 'الموقع'], fieldv: ['PAD 7 · W-12', 'منصة 7 · بئر 12'],
+  data: ['DATA', 'البيانات'], parts: ['PARTS', 'الأجزاء'],
+  p_stroke: ['STROKE', 'الشوط'], spm_l: ['Strokes / min', 'شوط في الدقيقة'], len_l: ['Stroke length', 'طول الشوط'],
+  count: ['Count', 'العدد'], dir: ['Direction', 'الاتجاه'], vel: ['Rod vel', 'سرعة القضيب'],
+  p_dyno: ['DYNAMOMETER CARD', 'كارت الديناموميتر'], load: ['Load (kN)', 'الحمل (ك.ن)'], pos: ['Position →', 'الموضع'],
+  pprl: ['PPRL', 'أقصى حمل'], mprl: ['MPRL', 'أقل حمل'], fill: ['Fillage', 'الامتلاء'],
+  p_power: ['PRIME MOVER', 'المحرك'], shaft: ['Shaft power', 'قدرة العمود'], draw: ['Draw', 'التيار'], motor: ['Motor', 'سرعة المحرك'], torque: ['Torque', 'العزم'],
+  p_ctrl: ['CONTROLS', 'التحكم'], reset: ['RESET VIEW', 'إعادة العرض'], speed: ['Pump speed', 'سرعة الضخ'], explode: ['Explode', 'التفكيك'],
+  v_front: ['FRONT', 'أمامي'], v_side: ['SIDE', 'جانبي'], v_top: ['TOP', 'علوي'], v_iso: ['ISO', 'منظوري'],
+  p_insp: ['INSPECTOR', 'الفحص'], p_display: ['DISPLAY', 'العرض'], p_subs: ['SUBSYSTEMS', 'الأنظمة'],
+  t_labels: ['LABELS', 'التسميات'], t_explode: ['EXPLODED', 'تفكيك'], t_cut: ['CUTAWAY', 'قطاع'], t_xray: ['X-RAY', 'شفاف'], t_down: ['DOWNHOLE', 'قاع البئر'], t_turn: ['TURNTABLE', 'دوران'],
+  p_asm: ['ASSEMBLIES', 'الأجزاء'], asm_hint: ['08 · CLICK TO INSPECT · DOUBLE-CLICK TO DIVE', '08 · اضغط للفحص · دبل كليك للدخول'],
+  p_log: ['OPERATION LOG', 'سجل التشغيل'], start: ['Start', 'البداية'], end: ['End', 'النهاية'],
+  model: ['MODEL PJ-320 · REV B', 'موديل PJ-320 · إصدار B'], isolate: ['ISOLATE', 'عزل'], opmode: ['Operating mode', 'وضع التشغيل'],
+  foot_l: ['FIELD SIMULATOR · PROCEDURAL MODEL · 13 ASSEMBLIES · 1 WELL · 1,620 M', 'محاكي ميداني · موديل إجرائي · 13 جزء · بئر واحد · 1,620 م'],
+  foot_r: ['DRAG ROTATE · SCROLL ZOOM · RIGHT-DRAG PAN · DBL-CLICK DIVE', 'اسحب للف · العجلة للزووم · كليك يمين للتحريك · دبل كليك للدخول'],
+  all: ['ALL', 'الكل'], running: ['● RUNNING', '● يعمل'], stopped: ['○ STOPPED', '○ متوقف'],
+  focus: ['FOCUS', 'تركيز'], iso: ['ISOLATE', 'عزل'], tear: ['TEAR DOWN', 'فك'], section: ['SECTION', 'قطاع'],
+  u_spm: ['SPM', 'ش/د'], u_in: ['IN', 'بوصة'], u_kw: ['kW', 'ك.وات'], u_ms: ['m/s', 'م/ث'], u_kn: ['kN', 'ك.ن'], u_a: ['A', 'أمبير'], u_rpm: ['RPM', 'لفة/د'], u_knm: ['kN·m', 'ك.ن·م'],
+  up: ['▲ UP', '▲ طلوع'], down: ['▼ DOWN', '▼ نزول'], hold: ['— HOLD', '— ثابت'],
+  actions: ['OPERATOR ACTIONS', 'خطوات تشغيل'], click: ['CLICK', 'اضغط'], dive: ['DBL-CLICK DIVE', 'دبل كليك للدخول'],
+  showui: ['☰ SHOW PANELS', '☰ إظهار اللوحات'],
+  user: ['USER', 'المستخدم'], operator: ['OPERATOR', 'المشغّل'], top: ['TOP', 'أعلى'], bottom: ['BOTTOM', 'أسفل'],
+};
+const MODES_AR = { TEARDOWN: 'تفكيك', DOWNHOLE: 'قاع البئر', CUTAWAY: 'قطاع', 'X-RAY': 'شفاف', INSPECT: 'فحص', PUMPING: 'ضخ', STANDBY: 'استعداد' };
+const PILLS_AR = { DETACHED: 'مفكوك', OPEN: 'مفتوح', SECTIONED: 'مقطوع', PUMPING: 'يضخ', BURIED: 'مدفون', NOMINAL: 'سليم', RELEASED: 'محررة', SET: 'معشّقة', RUNNING: 'يعمل', IDLE: 'خامل' };
+let LANG = 'en';
+try { LANG = localStorage.getItem('pj-lang') || 'en'; } catch (e) {}
+const T = k => I18N[k][LANG === 'ar' ? 1 : 0];
+const isAr = () => LANG === 'ar';
+const pShort = p => isAr() ? p.shortAr : p.short;
+const pName = p => isAr() ? p.ar : p.name;
+const pNameU = p => isAr() ? p.ar : p.name.toUpperCase();
+const pSub = p => isAr() ? p.subAr : p.sub;
+const pDesc = p => isAr() ? p.desc : p.descEn;
+const pSpecs = p => isAr() ? p.specsAr : p.specs;
+const cTitle = c => isAr() ? (CALL_AR[c.title]?.[0] || c.title) : c.title;
+const cNote = c => isAr() ? (CALL_AR[c.title]?.[1] || c.note) : c.note;
+
+const gsegs = $('#gsegs'); for (let i = 0; i < 40; i++) gsegs.appendChild(document.createElement('i'));
+const pbars = $('#pbars'); for (let i = 0; i < 9; i++) pbars.appendChild(document.createElement('i'));
+
+const dock = $('#dock');
+const allChip = document.createElement('button');
+allChip.className = 'dchip on'; allChip.innerHTML = '<em>00</em>ALL';
+allChip.onclick = () => { userAct(); select(null); flyView('home'); };
+dock.appendChild(allChip);
+const dockChips = {};
+ORDER.forEach(id => {
+  const p = partById[id], b = document.createElement('button');
+  b.className = 'dchip'; b.innerHTML = `<em>${p.no}</em>${p.short}`;
+  b.onclick = () => { userAct(); select(p, { fly: true }); };
+  b.onmouseenter = () => hovered = p; b.onmouseleave = () => hovered = null;
+  dock.appendChild(b); dockChips[id] = b;
+});
+
+const subsEl = $('#subs'), subRows = {};
+ORDER.forEach(id => {
+  const p = partById[id], li = document.createElement('li');
+  li.innerHTML = `<span class="no">${p.no}</span><div><div class="n">${p.name.toUpperCase()}</div><div class="d">${p.sub}</div></div><span class="pill">—</span>`;
+  li.onclick = () => { userAct(); select(p, { fly: true }); };
+  li.onmouseenter = () => hovered = p; li.onmouseleave = () => hovered = null;
+  subsEl.appendChild(li); subRows[id] = { li, pill: li.querySelector('.pill') };
+});
+
+const specsHTML = s => `<div class="specs">${s.map(([k, v]) => `<div><span class="k">${k}</span><div class="v">${v}</div></div>`).join('')}</div>`;
+function renderInspector() {
+  const p = state.selected, el = $('#inspector'), ar = isAr();
+  const head = `<div class="ph"><b>${T('p_insp')}</b><i>05</i></div>`;
+  if (!p) {
+    const specs = ar
+      ? [['الشوط', STROKE_IN.toFixed(0) + ' بوصة'], ['الهيكل', '14,500 كجم'], ['المخفّض', '320D'], ['الأجزاء', '13']]
+      : [['Stroke', STROKE_IN.toFixed(0) + ' in'], ['Structure', '32,000 lb'], ['Reducer', '320D'], ['Assemblies', '13']];
+    el.innerHTML = head + `<div class="insp-no">${ar ? 'PJ-320 · الوحدة كاملة' : 'PJ-320 · ASSEMBLY'}</div>
+      <div class="insp-name">${ar ? 'وحدة الضخ بالعارضة' : 'Beam Pumping Unit'}</div>
+      <div class="insp-sub">${ar ? 'تقليدية · فئة أولى · API 11E' : 'CONVENTIONAL · CLASS I · API 11E'}</div>
+      <div class="insp-desc">${ar
+        ? 'المحرك يلف صندوق التروس، والأذرع تحرك أذرع التوصيل، فالعارضة تتأرجح ورأس الحصان يطلع وينزل ويشد القضيب ومعاه المكبس في قاع البئر. اضغط على أي جزء في الموديل أو من الأزرار تحت عشان تفحصه.'
+        : 'The motor drives the gear reducer, the cranks drive the pitman arms, and the beam rocks so the horsehead lifts the rod string and the plunger at the bottom of the well. Click any part in the model, or a button below, to inspect it.'}</div>
+      ${specsHTML(specs)}`;
+    return;
+  }
+  const hasSubs = p.subs.length > 0, hasCut = !!p.clip;
+  el.innerHTML = head + `<div class="insp-no">${p.no} / ${pShort(p)}</div>
+    <div class="insp-name">${pName(p)}</div>
+    <div class="insp-sub">${pSub(p)}</div>
+    <div class="insp-desc">${pDesc(p)}</div>
+    ${specsHTML(pSpecs(p))}
+    <div class="btnrow">
+      <button class="chip" data-a="focus">${T('focus')}</button>
+      <button class="chip ${state.isolate ? 'on' : ''}" data-a="iso">${T('iso')}</button>
+      <button class="chip ${p.openT ? 'on' : ''}" data-a="open" ${hasSubs ? '' : 'disabled'}>${T('tear')}</button>
+      <button class="chip ${state.cutT ? 'on' : ''}" data-a="cut" ${hasCut ? '' : 'disabled'}>${T('section')}</button>
+      <button class="chip" data-a="close" aria-label="Close">✕</button>
+    </div>`;
+  el.querySelectorAll('[data-a]').forEach(b => b.onclick = () => {
+    userAct();
+    const a = b.dataset.a;
+    if (a === 'focus') focusPart(p, .8);
+    if (a === 'iso') { state.isolate = !state.isolate; log('ISOLATE ' + (state.isolate ? p.short : 'OFF'), state.isolate ? 'عزل ' + p.shortAr : 'إلغاء العزل'); }
+    if (a === 'open') { p.openT = p.openT ? 0 : 1; log('TEAR DOWN ' + p.short, 'فك ' + p.shortAr); }
+    if (a === 'cut') setToggle('cut', !state.cutT);
+    if (a === 'close') { select(null); flyView('home'); return; }
+    renderInspector();
+  });
+}
+
+function select(p, opts = {}) {
+  state.selected = p;
+  if (!p) state.isolate = false;
+  if (opts.isolate !== undefined) state.isolate = opts.isolate;
+  allChip.classList.toggle('on', !p);
+  for (const id in dockChips) dockChips[id].classList.toggle('on', p && p.id === id);
+  for (const id in subRows) subRows[id].li.classList.toggle('on', p && p.id === id);
+  $('#isoTxt').textContent = p ? pShort(p) : T('all');
+  if (p && p.id === 'downhole' && !state.downT) setToggle('down', true, true);
+  if (p && opts.fly) focusPart(p);
+  if (p && !opts.silent) log('INSPECT ' + p.name.toUpperCase(), 'فحص ' + p.ar);
+  renderInspector();
+  if (p && innerWidth <= 1280 && !document.body.classList.contains('immersive')) document.body.classList.add('show-right');
+}
+
+const toggles = {
+  labels: v => state.labels = v,
+  explode: v => { state.explodeT = v ? 1 : 0; syncExp(); },
+  cut: v => state.cutT = v ? 1 : 0,
+  xray: v => state.xrayT = v ? 1 : 0,
+  down: v => { state.downT = v ? 1 : 0; controls.maxPolarAngle = v ? Math.PI : Math.PI / 2 - .03; },
+  turn: v => { state.turn = v; controls.autoRotate = v; },
+};
+const tState = () => ({ labels: state.labels, explode: state.explodeT > .5, cut: !!state.cutT, xray: !!state.xrayT, down: !!state.downT, turn: state.turn });
+function setToggle(name, v, quiet) {
+  toggles[name](v);
+  document.querySelectorAll('#displayChips .chip').forEach(b => b.classList.toggle('on', tState()[b.dataset.t]));
+  if (!quiet) log(I18N['t_' + name][0] + (v ? ' ON' : ' OFF'), I18N['t_' + name][1] + (v ? ' · تشغيل' : ' · إيقاف'));
+  if (name === 'down' && v && !quiet) flyTo([15, -2.5, 19], [WX - 1, -8.5, 0], 1.8);
+  if (name === 'down' && !v && state.selected?.id === 'downhole') select(null, { silent: true });
+  renderInspector();
+}
+document.querySelectorAll('#displayChips .chip').forEach(b => b.onclick = () => { userAct(); setToggle(b.dataset.t, !tState()[b.dataset.t]); });
+
+const rSpm = $('#rSpm'), rExp = $('#rExp');
+const paintRange = el => el.style.setProperty('--p', ((el.value - el.min) / (el.max - el.min) * 100) + '%');
+rSpm.oninput = () => { userAct(); state.spmT = +rSpm.value; $('#spmLbl').textContent = (+rSpm.value).toFixed(1) + ' ' + T('u_spm'); paintRange(rSpm); if (!state.running && state.spmT > 0) setRun(true); };
+rExp.oninput = () => { userAct(); state.explodeT = rExp.value / 100; $('#expLbl').textContent = rExp.value + ' %'; paintRange(rExp); document.querySelector('[data-t=explode]').classList.toggle('on', state.explodeT > .5); };
+function syncExp() { rExp.value = Math.round(state.explodeT * 100); $('#expLbl').textContent = rExp.value + ' %'; paintRange(rExp); }
+paintRange(rSpm); paintRange(rExp);
+function setRun(v) {
+  state.running = v;
+  const b = $('#btnRun'); b.classList.toggle('on', v); b.textContent = T(v ? 'running' : 'stopped');
+  log(v ? 'MOTOR START' : 'MOTOR STOP', v ? 'تشغيل المحرك' : 'إيقاف المحرك');
+}
+$('#btnRun').onclick = () => { userAct(); setRun(!state.running); };
+$('#btnHome').onclick = () => { userAct(); select(null); flyView('home'); };
+document.querySelectorAll('[data-view]').forEach(b => b.onclick = () => { userAct(); flyView(b.dataset.view); });
+$('#tglLeft').onclick = () => { document.body.classList.toggle('show-left'); document.body.classList.remove('show-right'); };
+$('#tglRight').onclick = () => { document.body.classList.toggle('show-right'); document.body.classList.remove('show-left'); };
+
+/* ---------- operation log / guided tour ---------- */
+const TOUR = [
+  { l: 'SYSTEM ONLINE', a: 'تشغيل النظام', d: 4, run() { resetScene(); flyView('home'); } },
+  { l: 'START PRIME MOVER', a: 'تشغيل المحرك', d: 5, run() { setRun(true); state.spmT = 7; select(partById.motor, { fly: true, silent: true }); setToggle('cut', true, true); } },
+  { l: 'OPEN GEAR REDUCER', a: 'فتح صندوق التروس', d: 5.5, run() { setToggle('cut', false, true); select(partById.gearbox, { fly: true, isolate: true, silent: true }); partById.gearbox.openT = 1; } },
+  { l: 'CRANK + COUNTERWEIGHT', a: 'الأذرع والأثقال', d: 5, run() { partById.gearbox.openT = 0; select(partById.cranks, { fly: true, isolate: false, silent: true }); } },
+  { l: 'HORSEHEAD + BRIDLE', a: 'رأس الحصان واللجام', d: 5, run() { select(partById.horsehead, { fly: true, silent: true }); } },
+  { l: 'DOWNHOLE PUMP', a: 'مضخة قاع البئر', d: 7, run() { setToggle('down', true, true); setToggle('cut', true, true); select(partById.downhole, { silent: true }); flyTo([7.5, -11.2, 5.5], [WX, -13.4, 0], 2); } },
+  { l: 'TEARDOWN', a: 'التفكيك الكامل', d: 7, run() { setToggle('cut', false, true); setToggle('down', false, true); select(null, { silent: true }); setToggle('explode', true, true); setToggle('turn', true, true); flyView('tear'); } },
+  { l: 'REASSEMBLE', a: 'إعادة التجميع', d: 4.5, run() { setToggle('explode', false, true); setToggle('turn', false, true); flyView('home'); } },
+];
+let acc = 0; TOUR.forEach(s => { s.t = acc; acc += s.d; });
+const TOUR_LEN = acc;
+const tour = { playing: true, t: 0, idx: -1 };
+const track = $('#track'), ticks = [];
+TOUR.forEach((s, i) => {
+  if (i === 0) return;
+  const tk = document.createElement('div'); tk.className = 'tick'; tk.dataset.l = s.l;
+  tk.style.left = (s.t / TOUR_LEN * 100) + '%'; track.appendChild(tk); ticks.push(tk);
+});
+function resetScene() {
+  select(null, { silent: true });
+  for (const p of parts) p.openT = 0;
+  setToggle('explode', false, true); setToggle('cut', false, true); setToggle('xray', false, true); setToggle('down', false, true); setToggle('turn', false, true);
+}
+function setPlaying(v) {
+  tour.playing = v;
+  $('#playIco').innerHTML = v ? '<rect x="3" y="2" width="3.4" height="12"/><rect x="9.6" y="2" width="3.4" height="12"/>' : '<path d="M4 2 L14 8 L4 14 Z"/>';
+}
+$('#play').onclick = () => { if (!tour.playing && tour.t >= TOUR_LEN - .01) { tour.t = 0; tour.idx = -1; } setPlaying(!tour.playing); };
+track.onclick = e => {
+  const rc = track.getBoundingClientRect();
+  tour.t = clamp((e.clientX - rc.left) / rc.width, 0, 1) * TOUR_LEN;
+  tour.idx = -1; setPlaying(true);
+};
+function setImmersive(v) {
+  document.body.classList.toggle('immersive', v);
+  if (v) document.body.classList.remove('show-left', 'show-right');
+}
+function userAct() { if (tour.playing) setPlaying(false); fly = null; }
+let lastLog = null;
+function log(en, ar, who = 'user') { lastLog = { en, ar: ar || en, who }; renderLog(); }
+function renderLog() { if (lastLog) $('#opAction').textContent = T(lastLog.who) + ' · ' + (isAr() ? lastLog.ar : lastLog.en); }
+const fmt = s => String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+
+/* =====================================================================
+   9. PICKING / HOVER / DOUBLE-CLICK DIVE
+   ===================================================================== */
+const raycaster = new THREE.Raycaster(), ndc = new THREE.Vector2();
+function pick(x, y) {
+  const rc = canvas.getBoundingClientRect();
+  ndc.set((x - rc.left) / rc.width * 2 - 1, -(y - rc.top) / rc.height * 2 + 1);
+  raycaster.setFromCamera(ndc, camera);
+  const hits = raycaster.intersectObjects(pickables, false);
+  for (const h of hits) {
+    const p = h.object.userData.part;
+    if (!p || !p.root.visible || p.ghost < .4) continue;
+    if (h.object.material.userData?.cut && p.clip && p.clip.distanceToPoint(h.point) < 0) continue;
+    if (h.object.material.opacity < .3 && !h.object.material.userData?.cut) continue;
+    let o = h.object, vis = true; while (o) { if (!o.visible) { vis = false; break; } o = o.parent; }
+    if (!vis) continue;
+    return { part: p, point: h.point };
+  }
+  return null;
+}
+let down = null, hoverXY = null;
+canvas.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY }; });
+canvas.addEventListener('pointerup', e => {
+  if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 5) { down = null; return; }
+  down = null;
+  const hit = pick(e.clientX, e.clientY);
+  userAct();
+  if (hit) { select(hit.part, { fly: hit.part !== state.selected }); setImmersive(true); }
+  else if (state.selected) select(null);
+});
+canvas.addEventListener('dblclick', e => {
+  const hit = pick(e.clientX, e.clientY);
+  if (!hit) return;
+  userAct();
+  if (hit.part !== state.selected) select(hit.part, { silent: false });
+  setImmersive(true);
+  const dir = camera.position.clone().sub(hit.point).normalize();
+  const dist = Math.max(.7, camera.position.distanceTo(hit.point) * .32);
+  flyTo(hit.point.clone().addScaledVector(dir, dist).toArray(), hit.point.toArray(), 1.1);
+});
+canvas.addEventListener('pointermove', e => { hoverXY = { x: e.clientX, y: e.clientY }; });
+canvas.addEventListener('pointerleave', () => { hoverXY = null; hovered = null; $('#tip').style.opacity = 0; });
+controls.addEventListener('start', () => { if (tour.playing) setPlaying(false); fly = null; setImmersive(true); });
+const tip = $('#tip');
+
+addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  const k = e.key.toLowerCase();
+  if (k === ' ') { e.preventDefault(); $('#play').click(); return; }
+  const map = { l: 'labels', e: 'explode', c: 'cut', x: 'xray', d: 'down', t: 'turn' };
+  if (map[k]) { userAct(); setToggle(map[k], !tState()[map[k]]); }
+  if (k === 'r') { userAct(); setRun(!state.running); }
+  if (k === 'escape') { userAct(); setImmersive(false); select(null); flyView('home'); }
+  if (k === 'h') setImmersive(!document.body.classList.contains('immersive'));
+  if (k === 'arrowright' || k === 'arrowleft') {
+    userAct();
+    const i = state.selected ? ORDER.indexOf(state.selected.id) : -1;
+    const n = (i + (k === 'arrowright' ? 1 : -1) + ORDER.length) % ORDER.length;
+    select(partById[ORDER[n]], { fly: true });
+  }
+});
+
+/* =====================================================================
+   10. LABELS (projected 3D anchors + leader lines)
+   ===================================================================== */
+const labelsEl = $('#labels'), svg = $('#leaders');
+const pool = [];
+function getLabel(i) {
+  if (!pool[i]) {
+    const el = document.createElement('div'); el.className = 'lbl';
+    el.innerHTML = '<b></b><span></span>';
+    el.onclick = () => { userAct(); const p = el._part; if (p) select(p, { fly: p !== state.selected }); };
+    labelsEl.appendChild(el);
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+    line.setAttribute('fill', 'none'); line.setAttribute('stroke', '#ff5a1f'); line.setAttribute('stroke-width', '1');
+    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    dot.setAttribute('r', '3'); dot.setAttribute('fill', '#ff5a1f');
+    svg.append(line, dot);
+    pool[i] = { el, line, dot, t: '', n: '' };
+  }
+  return pool[i];
+}
+const tmpV = new V3();
+function updateLabels() {
+  const W = innerWidth, H = innerHeight, items = [];
+  if (state.labels && !fly) {
+    if (state.selected) {
+      const p = state.selected;
+      items.push({ o: p.anchor, t: p.no + ' ' + pShort(p), n: pSub(p), p });
+      p.callouts.forEach(c => items.push({ o: c.obj, t: cTitle(c), n: cNote(c), p }));
+    } else {
+      for (const p of parts) {
+        if (!p.root.visible || p.ghost < .5) continue;
+        if (p.id === 'downhole' && state.down < .6) continue;
+        items.push({ o: p.anchor, t: p.no + ' ' + pShort(p), n: pSub(p), p });
+      }
+    }
+  }
+  const lb = document.getElementById('left'), rb = document.getElementById('right');
+  const lr = lb.getBoundingClientRect(), rr = rb.getBoundingClientRect();
+  const minX = (lr.right > 0 && lr.right < W / 2) ? lr.right + 12 : 12;
+  const maxX = (rr.left < W && rr.left > W / 2) ? rr.left - 12 : W - 12;
+  const vis = [];
+  for (const it of items) {
+    it.o.getWorldPosition(tmpV);
+    tmpV.project(camera);
+    if (tmpV.z > 1 || Math.abs(tmpV.x) > 1.05 || Math.abs(tmpV.y) > 1.05) continue;
+    it.x = (tmpV.x + 1) / 2 * W; it.y = (1 - tmpV.y) / 2 * H;
+    if (it.x < minX || it.x > maxX || it.y < 110 || it.y > H - 60) continue;
+    it.side = it.x < (minX + maxX) / 2 ? -1 : 1;
+    it.ly = it.y - 30;
+    vis.push(it);
+  }
+  for (const side of [-1, 1]) {
+    const s = vis.filter(v => v.side === side).sort((a, b) => a.ly - b.ly);
+    for (let i = 1; i < s.length; i++) if (s[i].ly - s[i - 1].ly < 36) s[i].ly = s[i - 1].ly + 36;
+  }
+  vis.forEach((it, i) => {
+    const L = getLabel(i);
+    if (L.t !== it.t) { L.el.children[0].textContent = it.t; L.t = it.t; }
+    if (L.n !== it.n) { L.el.children[1].textContent = it.n; L.n = it.n; }
+    L.el._part = it.p;
+    const w = L.el.offsetWidth || 140;
+    const elbowX = it.x + it.side * 46;
+    let lx = it.side > 0 ? elbowX + 6 : elbowX - 6 - w;
+    lx = clamp(lx, minX, maxX - w);
+    L.el.style.transform = `translate(${lx}px,${it.ly - 9}px)`;
+    L.el.style.display = 'block';
+    const endX = it.side > 0 ? lx : lx + w;
+    L.line.setAttribute('points', `${it.x},${it.y} ${elbowX},${it.ly} ${endX},${it.ly}`);
+    L.dot.setAttribute('cx', it.x); L.dot.setAttribute('cy', it.y);
+    L.line.style.display = L.dot.style.display = '';
+  });
+  for (let i = vis.length; i < pool.length; i++) { pool[i].el.style.display = 'none'; pool[i].line.style.display = pool[i].dot.style.display = 'none'; }
+}
+
+/* =====================================================================
+   11. CHARTS
+   ===================================================================== */
+function setupCanvas(c) { const r = c.getBoundingClientRect(); c.width = Math.max(1, r.width * DPR); c.height = Math.max(1, r.height * DPR); return c.getContext('2d'); }
+const spark = $('#spark'), dyno = $('#dyno');
+let sctx = setupCanvas(spark), dctx = setupCanvas(dyno);
+const sparkData = [], dynoPts = [];
+function drawSpark() {
+  const c = spark, g = sctx, w = c.width, h = c.height;
+  g.clearRect(0, 0, w, h);
+  g.strokeStyle = '#e3dcd1'; g.lineWidth = DPR;
+  for (const f of [.15, .5, .85]) { g.beginPath(); g.moveTo(0, h * f); g.lineTo(w, h * f); g.stroke(); }
+  if (sparkData.length < 2) return;
+  g.strokeStyle = '#ff5a1f'; g.lineWidth = 1.6 * DPR; g.beginPath();
+  sparkData.forEach((v, i) => {
+    const x = i / (240 - 1) * w, y = h * (.85 - (v - S_MIN) / STROKE_M * .7);
+    i ? g.lineTo(x, y) : g.moveTo(x, y);
+  });
+  g.stroke();
+  const last = sparkData[sparkData.length - 1];
+  g.fillStyle = '#ff5a1f'; g.beginPath();
+  g.arc((sparkData.length - 1) / 239 * w, h * (.85 - (last - S_MIN) / STROKE_M * .7), 3 * DPR, 0, TAU); g.fill();
+  g.fillStyle = '#8d867b'; g.font = `${9 * DPR}px JetBrains Mono`;
+  g.fillText(T('top'), 2, h * .15 - 3 * DPR); g.fillText(T('bottom'), 2, h * .85 + 11 * DPR > h ? h - 2 : h * .85 - 3 * DPR);
+}
+function drawDyno(curS, curW) {
+  const c = dyno, g = dctx, w = c.width, h = c.height, pad = 6 * DPR;
+  g.clearRect(0, 0, w, h);
+  const X = s => pad + (s - S_MIN) / STROKE_M * (w - pad * 2), Y = L => h - pad - L / 90 * (h - pad * 2);
+  g.strokeStyle = '#e3dcd1'; g.lineWidth = DPR;
+  for (let L = 0; L <= 90; L += 30) { g.beginPath(); g.moveTo(pad, Y(L)); g.lineTo(w - pad, Y(L)); g.stroke(); }
+  g.fillStyle = '#b3ab9f'; g.font = `${8.5 * DPR}px JetBrains Mono`;
+  for (let L = 30; L <= 90; L += 30) g.fillText(L, pad + 2, Y(L) - 3 * DPR);
+  g.setLineDash([3 * DPR, 3 * DPR]); g.strokeStyle = '#c5bdb1';
+  g.strokeRect(X(S_MIN), Y(38 + 26), X(S_MAX) - X(S_MIN), Y(38) - Y(38 + 26)); g.setLineDash([]);
+  if (dynoPts.length > 2) {
+    g.strokeStyle = '#1b1c1f'; g.lineWidth = 1.6 * DPR; g.beginPath();
+    dynoPts.forEach(([s, L], i) => i ? g.lineTo(X(s), Y(L)) : g.moveTo(X(s), Y(L)));
+    g.stroke();
+  }
+  g.fillStyle = '#ff5a1f'; g.beginPath(); g.arc(X(curS), Y(curW), 4 * DPR, 0, TAU); g.fill();
+}
+
+/* =====================================================================
+   12. MAIN LOOP
+   ===================================================================== */
+const clock = new THREE.Clock();
+let frame = 0, runtime = 0, strokes = 0, prevPhiTurn = 0, lastDir = 0, revS = 0, ftAvg = 16, ftN = 0;
+let pprl = 0, mprl = 99, cyclePPRL = 0, cycleMPRL = 99;
+const WR = 38, WF = 26;
+const emis = new THREE.Color(1, .35, .12);
+const clipPt = new V3(), clipNw = new V3();
+
+function animate() {
+  requestAnimationFrame(animate);
+  tick(Math.min(clock.getDelta(), .05), true);
+}
+function tick(dt, draw) {
+  frame++; runtime += dt;
+
+  // adaptive resolution: drop pixel ratio if the GPU is struggling
+  ftAvg += (dt * 1000 - ftAvg) * .05; ftN++;
+  if (ftN > 180 && ftAvg > 26 && DPR > 1) { DPR = Math.max(1, DPR - .5); renderer.setPixelRatio(DPR); ftN = 0; sctx = setupCanvas(spark); dctx = setupCanvas(dyno); }
+
+  // tour
+  if (tour.playing) {
+    tour.t += dt;
+    if (tour.t >= TOUR_LEN) { tour.t = TOUR_LEN; setPlaying(false); }
+    let idx = 0; for (let i = 0; i < TOUR.length; i++) if (tour.t >= TOUR[i].t) idx = i;
+    if (idx !== tour.idx) { tour.idx = idx; TOUR[idx].run(); log(TOUR[idx].l, TOUR[idx].a, 'operator'); }
+  }
+
+  // drive + kinematics
+  const k = 1 - Math.exp(-dt * 1.4);
+  state.spm += ((state.running ? state.spmT : 0) - state.spm) * k;
+  const omega = state.spm * TAU / 60;
+  state.phi += omega * dt;
+  const phi = state.phi, K = solve(phi), th = K.theta;
+  const hD = .002, s = HA * th;
+  const sP = sOf(phi + hD), sM = sOf(phi - hD);
+  const TF = (sP - sM) / (2 * hD), vel = TF * omega, accel = (sP - 2 * s + sM) / (hD * hD) * omega * omega;
+
+  // smooth display toggles
+  const kk = 1 - Math.exp(-dt * 4);
+  state.explode += (state.explodeT - state.explode) * kk;
+  state.cut += (state.cutT - state.cut) * kk;
+  state.xray += (state.xrayT - state.xray) * kk;
+  state.down += (state.downT - state.down) * kk;
+
+  const pb = partById;
+  for (const arm of pb.cranks.arms) arm.rotation.z = phi;
+  pb.gearbox.bull.rotation.z = phi;
+  pb.gearbox.inter.rotation.z = -phi * 60 / 16 + .1;
+  pb.gearbox.input.rotation.z = phi * R_GEAR;
+  pb.belts.is.rotation.z = phi * R_GEAR;
+  pb.belts.ms.rotation.z = phi * R_GEAR * R_BELT;
+  pb.brake.drum.rotation.z = phi * R_GEAR;
+  pb.motor.rotor.rotation.z = phi * R_GEAR * R_BELT;
+  pb.beam.pivot.rotation.z = th;
+  pb.horsehead.pivot.rotation.z = th;
+  const ang = Math.atan2(K.ey - K.qy, K.ex - K.qx) - Math.PI / 2;
+  for (const r of pb.pitman.rods) { r.g.position.set(K.qx, K.qy, r.z); r.g.rotation.z = ang; }
+  pb.pitman.eq.position.set(K.ex, K.ey, 0); pb.pitman.eq.rotation.z = th;
+  const yc = YC0 + s;
+  pb.bridle.carrier.position.set(WX, yc, 0);
+  for (const rp of pb.bridle.ropes) rp.scale.y = P.y - (yc + .12);
+  pb.wellhead.rod.position.y = yc + .25 - 1.7;
+  const hh = pb.horsehead;
+  if (Math.abs(th - hh.lastTheta) > .0015) {
+    hh.lastTheta = th;
+    for (const m of hh.ropeArcs) { m.geometry.dispose(); m.geometry = new THREE.TorusGeometry(HA + .03, .025, 6, 40, hh.a1 + th); m.rotation.z = -th; }
+  }
+  // downhole pump
+  const dh = pb.downhole;
+  dh.rods.position.y = s;
+  const up = vel > .002, dn = vel < -.002;
+  dh.tBall.position.y += ((dn ? -13.56 : -13.66) - dh.tBall.position.y) * .25;
+  dh.sBall.position.y += ((up ? -14.84 : -14.94) - dh.sBall.position.y) * .25;
+  if (state.down > .05 && up) {
+    const pa = dh.fluid.geometry.attributes.position, arr = pa.array, dy = vel * dt * 1.6;
+    for (let i = 1; i < arr.length; i += 3) { arr[i] += dy; if (arr[i] > 1) arr[i] -= 16; }
+    pa.needsUpdate = true;
+  }
+
+  // loads (simple rod-string model → dynamometer card + gearbox torque)
+  const dir = up ? 1 : dn ? -1 : 0;
+  if (dir && dir !== lastDir) { revS = s; lastDir = dir; }
+  const prog = smooth(clamp(Math.abs(s - revS) / (.2 * STROKE_M), 0, 1));
+  const fluid = lastDir > 0 ? WF * prog : WF * (1 - prog);
+  const load = WR + fluid + WR * (accel / 9.81) * 2.2 + Math.sin(runtime * 23) * .35 * (state.spm / 7);
+  const torque = TF * (load - WR - WF * .5);
+  const gpct = clamp(Math.abs(torque) / 36 * 100, 0, 130);
+  const kw = torque * omega / .88;
+  if (state.spm > .2) {
+    dynoPts.push([s, load]);
+    const keep = Math.ceil(1.02 * 60 / Math.max(state.spm, .5) / Math.max(dt, .008));
+    while (dynoPts.length > Math.min(keep, 2400)) dynoPts.shift();
+    cyclePPRL = Math.max(cyclePPRL, load); cycleMPRL = Math.min(cycleMPRL, load);
+  }
+  if (Math.floor(phi / TAU) !== prevPhiTurn) { prevPhiTurn = Math.floor(phi / TAU); strokes++; pprl = cyclePPRL; mprl = cycleMPRL; cyclePPRL = 0; cycleMPRL = 99; }
+  if (frame % 3 === 0) { sparkData.push(s); if (sparkData.length > 240) sparkData.shift(); }
+
+  // explode + per-assembly teardown
+  for (const p of parts) {
+    p.open += (p.openT - p.open) * kk;
+    p.root.position.copy(p.explodeOff).multiplyScalar(state.explode);
+    const f = Math.max(state.explode, p.open);
+    for (const sb of p.subs) sb.obj.position.copy(sb.off).multiplyScalar(f);
+  }
+
+  // ghosting / x-ray / hover highlight / section planes
+  const sel = state.selected;
+  for (const p of parts) {
+    const other = state.isolate && sel && sel !== p;
+    p.ghost += ((other ? .06 : 1) - p.ghost) * kk;
+    const hl = (hovered === p ? .22 : 0) + (sel === p ? .1 : 0);
+    p.hl += (hl - p.hl) * kk;
+    const vis = p.id === 'downhole' ? state.down : 1;
+    p.root.visible = vis > .02 && p.ghost > .02;
+    for (const m of p.mats) {
+      let o = m.userData.base * p.ghost * vis;
+      if (m.userData.cut) o *= 1 - .85 * state.xray;
+      m.opacity = o;
+      m.transparent = o < .995 || m.userData.base < 1;
+      m.depthWrite = o > .6;
+      if (m.emissive) m.emissive.copy(emis).multiplyScalar(p.hl);
+    }
+    if (p.clip) {
+      p.root.localToWorld(clipPt.copy(p.clipP));
+      clipNw.copy(p.clipN);
+      clipPt.addScaledVector(clipNw, -6 * (1 - state.cut));
+      p.clip.setFromNormalAndCoplanarPoint(clipNw, clipPt);
+    }
+  }
+  { const t = runtime; for (const fj of farJacks) { const a = Math.sin(t * fj.spm / 60 * TAU + fj.ph) * .22; for (const p of fj.pivots) p.rotation.z = a; } }
+  field.userData.ground.material.opacity = 1 - state.down * .92; field.userData.ground.material.depthWrite = state.down < .5;
+  field.userData.pad.material.opacity = 1 - state.down * .92;
+  field.children.forEach(o => { if (o !== field.userData.ground && o !== field.userData.pad) o.visible = state.down < .6; });
+  groundShadow.material.opacity = 0;
+  partById.base.mats.forEach(m => { if (m.userData.base === 1) { m.opacity *= 1 - state.down * .55; m.transparent = m.opacity < .995; } });
+  decor.children.forEach(hd => hd.children[0].rotation.z += hd.children[0].userData.spd * dt);
+
+  // camera
+  if (fly) {
+    fly.t += dt / fly.dur;
+    const e = ease(Math.min(1, fly.t));
+    camera.position.lerpVectors(fly.p0, fly.p1, e);
+    controls.target.lerpVectors(fly.t0, fly.t1, e);
+    if (fly.t >= 1) fly = null;
+  }
+  controls.update();
+
+  // hover (one raycast per frame max)
+  if (hoverXY && frame % 2 === 0 && !down) {
+    const hit = pick(hoverXY.x, hoverXY.y);
+    hovered = hit ? hit.part : null;
+    canvas.classList.toggle('hover', !!hit);
+    if (hit) { tip.innerHTML = `${hit.part.no} ${pNameU(hit.part)}<i>${T(hit.part === sel ? 'dive' : 'click')}</i>`; tip.style.transform = `translate(${hoverXY.x + 14}px,${hoverXY.y + 14}px)`; tip.style.opacity = 1; }
+    else tip.style.opacity = 0;
+  }
+
+  if (!draw) return;
+  renderer.render(scene, camera);
+  updateLabels();
+
+  // HUD text (throttled)
+  if (frame % 4 === 0) {
+    $('#vSpm').innerHTML = state.spm.toFixed(1) + `<small>${T('u_spm')}</small>`;
+    $('#vStroke').innerHTML = STROKE_IN.toFixed(0) + `<small>${T('u_in')}</small>`;
+    $('#vStrokes').textContent = strokes.toLocaleString();
+    $('#vDir').textContent = T(up ? 'up' : dn ? 'down' : 'hold');
+    $('#vVel').textContent = vel.toFixed(2) + ' ' + T('u_ms');
+    $('#vPprl').textContent = pprl.toFixed(1) + ' ' + T('u_kn');
+    $('#vMprl').textContent = (mprl > 90 ? 0 : mprl).toFixed(1) + ' ' + T('u_kn');
+    $('#vKw').innerHTML = kw.toFixed(1) + `<small>${T('u_kw')}</small>`;
+    $('#vAmps').textContent = Math.abs(kw * 1000 / (1.732 * 460 * .86)).toFixed(0) + ' ' + T('u_a');
+    $('#vRpm').textContent = Math.round(state.spm * 168.6) + ' ' + T('u_rpm');
+    $('#vTorque').textContent = torque.toFixed(1) + ' ' + T('u_knm');
+    const on = Math.round(gpct / 100 * 32);
+    [...gsegs.children].forEach((el, i) => { el.className = i < on ? (i >= 32 ? 'hot' : 'on') : ''; });
+    $('#hGpct').textContent = gpct.toFixed(0) + '%';
+    const pl = Math.round(clamp(Math.abs(kw) / 15, 0, 1) * 9);
+    [...pbars.children].forEach((el, i) => { el.className = i < pl ? (i < 2 ? 'hot' : 'on') : ''; });
+    $('#hRuntime').textContent = '00:' + fmt(runtime);
+    const mode = state.explode > .5 ? 'TEARDOWN' : state.down > .5 ? 'DOWNHOLE' : state.cut > .5 ? 'CUTAWAY' : state.xray > .5 ? 'X-RAY' : sel ? 'INSPECT' : state.spm > .3 ? 'PUMPING' : 'STANDBY';
+    const modeTxt = isAr() ? MODES_AR[mode] : mode;
+    $('#modeName').textContent = modeTxt; $('#hStatus').textContent = modeTxt;
+    const pctA = Math.round(state.explode * 100);
+    $('#modeSub').textContent = sel
+      ? (isAr() ? `${pShort(sel)} · مفكك ${pctA}%` : `${sel.short} · ${pctA}% APART`)
+      : (isAr() ? `${state.spm.toFixed(1)} شوط/د · الشوط ${STROKE_IN.toFixed(0)} بوصة` : `SPM ${state.spm.toFixed(1)} · STROKE ${STROKE_IN.toFixed(0)} IN`);
+    $('#opTime').textContent = fmt(tour.t) + ' / ' + fmt(TOUR_LEN);
+    const pct = tour.t / TOUR_LEN * 100;
+    $('#tFill').style.width = pct + '%'; $('#tKnob').style.left = pct + '%';
+    for (const p of parts) {
+      const r = subRows[p.id]; let txt, cls;
+      if (state.explode > .5) { txt = 'DETACHED'; cls = 'acc'; }
+      else if (p.open > .5) { txt = 'OPEN'; cls = 'acc'; }
+      else if (p.clip && state.cut > .5 && (p.id !== 'downhole' || state.down > .5)) { txt = 'SECTIONED'; cls = 'acc'; }
+      else if (p.id === 'downhole') { txt = state.down > .5 ? 'PUMPING' : 'BURIED'; cls = state.down > .5 ? '' : 'idle'; }
+      else if (['base', 'samson'].includes(p.id)) { txt = 'NOMINAL'; cls = ''; }
+      else if (p.id === 'brake') { txt = state.running ? 'RELEASED' : 'SET'; cls = state.running ? 'idle' : 'acc'; }
+      else { txt = state.spm > .3 ? 'RUNNING' : 'IDLE'; cls = state.spm > .3 ? '' : 'idle'; }
+      const shown = isAr() ? PILLS_AR[txt] : txt;
+      if (r.pill.textContent !== shown) { r.pill.textContent = shown; r.pill.className = 'pill ' + cls; }
+    }
+  }
+  if (frame % 2 === 0) { drawSpark(); drawDyno(s, load); }
+}
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight, false);
+  sctx = setupCanvas(spark); dctx = setupCanvas(dyno);
+});
+
+function applyLang(l) {
+  LANG = l;
+  try { localStorage.setItem('pj-lang', l); } catch (e) {}
+  document.documentElement.lang = l;
+  document.body.classList.toggle('ar', l === 'ar');
+  document.querySelectorAll('[data-i18n]').forEach(el => { const v = I18N[el.dataset.i18n]; if (v) el.textContent = v[l === 'ar' ? 1 : 0]; });
+  document.querySelectorAll('.lang button').forEach(b => b.classList.toggle('on', b.dataset.lang === l));
+  allChip.innerHTML = `<em>00</em>${T('all')}`;
+  ORDER.forEach(id => {
+    const p = partById[id];
+    dockChips[id].innerHTML = `<em>${p.no}</em>${pShort(p)}`;
+    subRows[id].li.querySelector('.n').textContent = pNameU(p);
+    subRows[id].li.querySelector('.d').textContent = pSub(p);
+    subRows[id].pill.textContent = '';
+  });
+  ticks.forEach((tk, i) => tk.dataset.l = l === 'ar' ? TOUR[i + 1].a : TOUR[i + 1].l);
+  $('#opCount').textContent = TOUR.length + ' ' + T('actions');
+  $('#btnRun').textContent = T(state.running ? 'running' : 'stopped');
+  $('#spmLbl').textContent = (+rSpm.value).toFixed(1) + ' ' + T('u_spm');
+  $('#isoTxt').textContent = state.selected ? pShort(state.selected) : T('all');
+  renderInspector(); renderLog();
+}
+document.querySelectorAll('.lang button').forEach(b => b.onclick = () => applyLang(b.dataset.lang));
+$('#showUI').onclick = () => setImmersive(false);
+if (/[?&]lang=ar/.test(location.search)) LANG = 'ar';
+applyLang(LANG);
+setToggle('labels', true, true);
+// deep links: #gearbox  #explode  #down  #cut  #xray  (combine with +, e.g. #gearbox+cut)
+function applyHash() {
+  const keys = decodeURIComponent(location.hash.slice(1)).toLowerCase().split('+').filter(Boolean);
+  if (!keys.length) return;
+  setPlaying(false); tour.idx = 0;
+  for (const k of keys) {
+    if (partById[k]) select(partById[k], { fly: true, silent: true });
+    else if (k === 'open' && state.selected) state.selected.openT = 1;
+    else if (k === 'iso') state.isolate = true;
+    else if (k === 'view') setImmersive(true);
+    else if (toggles[k]) setToggle(k, true, true);
+  }
+  if (keys.includes('down') && !keys.some(k => partById[k])) flyTo([15, -2.5, 19], [WX - 1, -8.5, 0], 1.8);
+  else if (!keys.some(k => partById[k])) flyView(keys.includes('explode') ? 'tear' : 'home');
+}
+addEventListener('hashchange', applyHash);
+applyHash();
+// test hook: ?warm=N fast-forwards N frames (used for headless screenshots)
+const WARM = +new URLSearchParams(location.search).get('warm') || 0;
+for (let i = 0; i < WARM; i++) tick(1 / 30, false);
+if (WARM) { clock.getDelta(); ftN = -1e9; document.body.dataset.cam = camera.position.toArray().map(v=>v.toFixed(2)).join(',') + ' | ' + controls.target.toArray().map(v=>v.toFixed(2)).join(','); }
+animate();
+requestAnimationFrame(() => { const l = $('#loader'); l.style.opacity = 0; setTimeout(() => l.remove(), 900); });
+</script>
+</body>
+</html>

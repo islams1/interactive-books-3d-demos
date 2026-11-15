@@ -1,0 +1,11 @@
+%% How a demo was made, simplified. Full version: detailed/build-pipeline.mmd
+flowchart LR
+  A["Client brief"] --> B["AI coding assistant writes the game"]
+  B --> C["Automatic checks: screenshots, autopilot"]
+  C --> D{"Developer approves?"}
+  D -->|"no - fix"| B
+  D -->|"yes"| E["Upload to Vercel"]
+  F["Characters prepared in Blender"] --> E
+  G["Voices recorded by an AI voice service"] --> E
+  classDef main fill:#e8f0fe,stroke:#4b6fd6
+  class B,E main

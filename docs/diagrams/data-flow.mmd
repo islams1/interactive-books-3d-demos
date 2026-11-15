@@ -1,0 +1,11 @@
+%% Simplified. Full version: detailed/data-flow.mmd
+flowchart TD
+  A["Learner opens the link"] --> B["Build the world in code"]
+  B --> C["Load files in stages: hands, objects, characters, voices"]
+  C --> D["Main loop, about 60 times a second"]
+  D --> E["Read keys and mouse"]
+  E --> F["Update hands, fire, story, characters"]
+  F --> G["Draw the picture"]
+  G --> D
+  classDef main fill:#e8f0fe,stroke:#4b6fd6
+  class D main

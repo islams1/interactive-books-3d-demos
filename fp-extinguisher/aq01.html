@@ -1,0 +1,874 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AQ-01 · Still in Lane Four</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@400;600;700&family=Noto+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root { --ink: #f4f6f8; --dim: #b9c2cc; --panel: rgba(12, 18, 26, .82); --accent: #3fb6ff; --warn: #ff5a4f; }
+  html, body { margin: 0; height: 100%; background: #0b1016; overflow: hidden; font-family: 'Noto Kufi Arabic', 'Noto Sans', system-ui, sans-serif; color: var(--ink); }
+  body.en { font-family: 'Noto Sans', 'Noto Kufi Arabic', system-ui, sans-serif; }
+  canvas#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  .ov { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(6, 10, 15, .72); backdrop-filter: blur(4px); z-index: 20; }
+  .ov.hide { display: none; }
+  .card { width: min(620px, calc(100vw - 32px)); background: var(--panel); border: 1px solid rgba(255,255,255,.08); border-radius: 14px; padding: 26px 28px; box-shadow: 0 24px 60px rgba(0,0,0,.45); }
+  .card h1 { margin: 0 0 6px; font-size: 26px; }
+  .card .id { color: var(--dim); font-size: 12px; letter-spacing: .04em; margin-bottom: 14px; }
+  .card p { line-height: 1.75; margin: 10px 0; color: #dfe6ec; font-size: 15px; }
+  .note { border-inline-start: 3px solid #f5b342; padding: 8px 12px; background: rgba(245,179,66,.08); border-radius: 6px; font-size: 14px !important; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; align-items: center; }
+  button { font: inherit; border: 0; border-radius: 9px; padding: 10px 18px; cursor: pointer; background: #24303d; color: var(--ink); }
+  button.go { background: var(--accent); color: #04131f; font-weight: 700; }
+  button:hover { filter: brightness(1.1); }
+  .seg button { padding: 6px 12px; font-size: 13px; }
+  .seg button.on { background: #3a4b5e; }
+  .keys { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font-size: 13px; color: var(--dim); margin-top: 12px; }
+  .kc { display: inline-block; min-width: 22px; text-align: center; padding: 2px 7px; border-radius: 5px; background: #2a3644; color: #fff; font-family: 'Noto Sans', monospace; font-size: 12px; }
+  #dlg { position: fixed; top: 16px; left: 16px; width: min(360px, 40vw); max-height: 52vh; overflow: hidden; display: flex; flex-direction: column; gap: 8px; z-index: 10; pointer-events: none; }
+  .msg { background: var(--panel); border-radius: 10px; padding: 9px 12px; font-size: 14px; line-height: 1.6; opacity: 1; transition: opacity .6s; direction: rtl; }
+  body.en .msg { direction: ltr; }
+  .msg b { display: block; font-size: 12px; color: var(--accent); margin-bottom: 2px; }
+  .msg.radio b { color: #9be36b; }
+  .msg.you b { color: #ffd166; }
+  .msg.alert b { color: var(--warn); }
+  .msg.old { opacity: .45; }
+  #hint { position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%); background: rgba(10,15,22,.6); padding: 6px 14px; border-radius: 20px; font-size: 13px; color: var(--dim); z-index: 9; display: flex; gap: 14px; white-space: nowrap; }
+  #hint.hide { display: none; }
+  #cross { position: fixed; left: 50%; top: 50%; width: 4px; height: 4px; margin: -2px; border-radius: 50%; background: rgba(255,255,255,.55); z-index: 8; }
+  #flash { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity .8s; z-index: 15; }
+  .tl { margin: 14px 0 6px; display: grid; grid-template-columns: 1fr auto; gap: 7px 16px; font-size: 14px; }
+  .tl .t { font-family: 'Noto Sans', monospace; color: #ffd166; text-align: end; direction: ltr; }
+  .tl .bad { color: var(--warn); }
+  .tl .good { color: #7be08a; }
+  .small { font-size: 12px !important; color: var(--dim) !important; }
+</style>
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+}}
+</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="cross"></div>
+<div id="dlg"></div>
+<div id="hint" class="hide"></div>
+<div id="flash"></div>
+
+<div class="ov" id="menu"><div class="card">
+  <div class="id">SIT-AQ-LIFE-0001 · <span data-t="phase1"></span></div>
+  <h1 data-t="title"></h1>
+  <p data-t="intro"></p>
+  <p class="note" data-t="content"></p>
+  <div class="keys" id="keys"></div>
+  <div class="row">
+    <button class="go" id="btnStart" data-t="start"></button>
+    <button id="btnDemo" data-t="demo"></button>
+    <span style="flex:1"></span>
+    <span class="seg" id="segL"><button data-l="ar">عربي</button><button data-l="en">EN</button></span>
+  </div>
+</div></div>
+
+<div class="ov hide" id="brief"><div class="card">
+  <div class="id" data-t="briefId"></div>
+  <h1 data-t="briefTitle"></h1>
+  <p data-t="brief"></p>
+  <div class="row"><button class="go" id="btnBrief" data-t="briefGo"></button></div>
+</div></div>
+
+<div class="ov hide" id="end"><div class="card">
+  <div class="id" data-t="endId"></div>
+  <h1 id="endTitle"></h1>
+  <p id="endText"></p>
+  <div class="tl" id="endTl"></div>
+  <p class="small" data-t="endNext"></p>
+  <div class="row"><button class="go" id="btnAgain" data-t="again"></button></div>
+</div></div>
+
+<script type="module">
+import * as THREE from 'three';
+const V3 = THREE.Vector3, TAU = Math.PI * 2;
+const params = new URLSearchParams(location.search);
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v)), lerp = (a, b, t) => a + (b - a) * t;
+const mj = u => { u = clamp(u, 0, 1); return u * u * u * (10 - 15 * u + 6 * u * u); };
+const $ = s => document.querySelector(s);
+
+/* =====================================================================
+   0. TEXT (Arabic first; English kept for review). The lines follow the situation script (English drafts) in Modern Standard Arabic.
+   ===================================================================== */
+let LANG = params.get('lang') || (() => { try { return localStorage.getItem('aq-lang'); } catch (e) { return null; } })() || 'ar';
+const STR = {
+  title: ['ساكنٌ في الحارة الرابعة', 'Still in Lane Four'],
+  phase1: ['المرحلة الأولى: الملاحظة', 'Phase 1: recognition'],
+  intro: ['أنت المنقذ الرئيسي على حوض المنافسات في بطولة ناشئين. راقب منطقتك جيدًا: أخطر لحظة هي بعد نهاية السباق مباشرة.', 'You are the lead lifeguard on the competition pool at a junior championship. Watch your zone: the most dangerous moment is right after a finish.'],
+  content: ['تنبيه: هذا الموقف يتضمّن سبّاحًا يفقد وعيه في الماء.', 'Content note: this situation involves a swimmer losing consciousness in the water.'],
+  start: ['ابدأ', 'Start'], demo: ['شاهد عرضًا', 'Watch a demo'],
+  briefId: ['إحاطة قبل المناوبة', 'Pre-shift briefing'], briefTitle: ['مركز الواحة للرياضات المائية', 'Al-Waha Aquatics Centre'],
+  brief: ['أنت المنقذ الرئيسي على حوض المنافسات. منطقتك: الحارات ١–٤، من جدار النهاية حتى منتصف الحوض. التصفية الثالثة من سباق ٥٠ م ظهر، ثم التصفية الرابعة من سباق ٥٠ م صدر. الجلسة متأخرة.', 'You are the lead lifeguard on the competition pool. Your zone: lanes 1–4, finish end to halfway. Heat 3 of the 50 m backstroke, then heat 4 of the 50 m breaststroke. Session running late.'],
+  briefGo: ['إلى الكرسي', 'To the chair'],
+  k_look: ['النظر', 'Look'], k_stand: ['قف على الكرسي / اجلس', 'Stand up in the chair / sit'], k_down: ['انزل من الكرسي / اصعد', 'Climb down / back up'],
+  k_move: ['المشي على الحافة', 'Walk the deck'], k_whistle: ['صفّارة الطوارئ (إيقاف وإشارة)', 'Emergency whistle (stop + point)'],
+  h_seat: ['مسافة: قف', 'Space: stand'], h_stand: ['مسافة: اجلس', 'Space: sit'], h_down: ['E: انزل', 'E: climb down'], h_up: ['E: اصعد إلى الكرسي', 'E: back to the chair'],
+  h_whistle: ['F: صفّارة', 'F: whistle'],
+  endId: ['نهاية المرحلة الأولى', 'End of phase 1'], again: ['أعد المحاولة', 'Try again'],
+  endNext: ['المرحلة التالية: النزول إلى الماء، الإخراج، وسلسلة الإسعاف.', 'Next phase: entering the water, the recovery and the rescue chain.'],
+};
+const NAMES = { mgr: ['مدير المناوبة (لاسلكي)', 'Duty manager (radio)'], ref: ['الحكم الرئيسي ناصر', 'Chief referee Nasser'], starter: ['حكم البدء', 'Starter'], timing: ['مسؤول التوقيت', 'Timing official'],
+  fahad: ['فهد (المنقذ الثاني)', 'Fahad (second lifeguard)'], omar: ['عمر، الحارة ٥', 'Omar, lane 5'], you: ['أنت', 'You'], kid: ['سبّاح على المنصّة ٤', 'Swimmer on block 4'], crowd: ['المدرّجات', 'The stand'] };
+const LINES = {
+  mgr_open: ['صباح الخير. نحن ناقصون اليوم؛ نُقل ماجد إلى منطقة التجميع، فحوض الإحماء للمدربين فقط. أنت وفهد على الحوض الرئيسي. نادِني إن احتجت شيئًا.', "Morning. We're short today — Majed went to marshalling, so the warm-up pool is coaches only. You and Fahad have the main pool. Shout if you need anything."],
+  st_marks3: ['التصفية الثالثة… خذوا أماكنكم.', 'Heat three… take your marks.'],
+  timing_ask: ['هل يمكن لأحدكما أن يمسك لوحة اللمس هذه بينما أعيد تثبيتها؟ دقيقتان فقط.', 'Can one of you hold this touch pad while I re-seat it? Two minutes.'],
+  fahad_swap: ['أنا هنا منذ الثامنة… هل من بديل؟', "I've been on since eight. Any chance of a swap?"],
+  ref_out: ['التصفية الثالثة، اخرجوا من فضلكم. التصفية الرابعة إلى منصّات البدء.', 'Heat three, out please. Heat four to the blocks.'],
+  omar_alert: ['يا أستاذ! هناك أحدٌ في القاع!', "Sir, there's someone at the bottom!"],
+  ref_dismiss: ['خلف المنصّة من فضلك. ركّز على سباقك.', 'Behind the block, please. Concentrate on your race.'],
+  ref_marks: ['خذوا أماكنكم.', 'Take your marks.'],
+  ref_heat5: ['التصفية الخامسة إلى المنصّات.', 'Heat five to the blocks.'],
+  kid_scream: ['آآه! هناك أحدٌ تحت الماء! الحارة الرابعة!', "Aah! There's someone under the water! Lane four!"],
+  crowd_shout: ['صراخ في المدرّجات…', 'Shouting in the stand…'],
+  you_stop: ['توقّفوا! سبّاحٌ غارق، الحارة الرابعة!', 'Stop! Swimmer down, lane four!'],
+};
+const T = k => STR[k] ? STR[k][LANG === 'ar' ? 0 : 1] : k, L2 = p => p ? p[LANG === 'ar' ? 0 : 1] : '';
+function applyLang() {
+  document.documentElement.lang = LANG; document.documentElement.dir = LANG === 'ar' ? 'rtl' : 'ltr';
+  document.body.classList.toggle('en', LANG !== 'ar');
+  document.querySelectorAll('[data-t]').forEach(el => el.textContent = T(el.dataset.t));
+  $('#keys').innerHTML = [['Mouse', 'k_look'], ['Space', 'k_stand'], ['E', 'k_down'], ['W A S D', 'k_move'], ['F', 'k_whistle']].map(([k, t]) => `<span><span class="kc">${k}</span></span><span>${T(t)}</span>`).join('');
+  document.querySelectorAll('#segL button').forEach(b => b.classList.toggle('on', b.dataset.l === LANG));
+}
+document.querySelectorAll('#segL button').forEach(b => b.onclick = () => { LANG = b.dataset.l; try { localStorage.setItem('aq-lang', LANG); } catch (e) {} applyLang(); });
+applyLang();
+
+/* =====================================================================
+   1. RENDERER, SCENE, CAMERA
+   ===================================================================== */
+const canvas = $('#c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+renderer.setSize(innerWidth, innerHeight, false);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = .9;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x9fb3c2);
+const camera = new THREE.PerspectiveCamera(68, innerWidth / innerHeight, .05, 300);
+camera.rotation.order = 'YXZ';
+const UNDER = 1;                                      // layer: what can be seen through the water (pool shell, swimmers, the casualty)
+
+/* ---- the place (metres, Y up). Water surface y = 0, pool floor y = -2. The pool runs along X: start end x = -25, FINISH END x = +25.
+   Lanes along Z: lane i centre z = -8.75 + 2.5 (i - 1). The lead lifeguard's raised chair is beside lane 1 (z < -10.5), towards the
+   finish end; the zone is lanes 1–4 from the finish wall to halfway. The stand is on the far side (z > 14). ---- */
+const POOL = { x0: -25, x1: 25, z0: -10.5, z1: 10.5, depth: 2 }, DECK_Y = .12;
+const laneZ = i => -8.75 + 2.5 * (i - 1);
+const HALL = { x0: -34, x1: 31, z0: -34, z1: 27, h: 12.5 };
+const CHAIR = { x: 14, z: -12.2, seatY: 1.45, footY: 1.0 };
+// the glare: a sunlit band of glazing high in the finish-end wall. What hides the bottom is its mirror image on the water where your
+// line of sight crosses the surface (real mirror geometry, computed exactly in the water shader): from the seat that image lies over
+// the bottom of lanes 3–5 near the finish wall; stand up in the chair (+0.8 m) or walk to the edge and it slides off.
+const GLARE = { x: HALL.x1 - .02, y0: 4.9, y1: 5.9, z0: 3.0, z1: 13.0, rad: new THREE.Color(1, .97, .9).multiplyScalar(20) };
+
+/* =====================================================================
+   2. MATERIALS: procedural tiles (pool shell, deck, walls) with caustic light on the pool shell
+   ===================================================================== */
+const U = { time: { value: 0 }, sunDir: { value: new V3(-.35, .86, .37).normalize() }, caust: { value: 1 } };
+const NOISE_GLSL = `
+float hash12(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * .1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
+float caustic(vec2 p, float t){                      // bright filaments of light focused by the moving surface (own design)
+  vec2 q = p * .9; float c = 0.;
+  for (int i = 0; i < 4; i++) {
+    float fi = float(i);
+    q = mat2(.8, .6, -.6, .8) * q * 1.27;
+    q += .55 * vec2(sin(q.y * .83 + t * (.55 + fi * .12) + fi), sin(q.x * .91 - t * (.47 + fi * .1) - fi * 1.7));
+    float s = abs(sin(q.x) * .5 + sin(q.y) * .5);
+    c += .012 / (.006 + s * s) * (1. / (1. + fi * .6));
+  }
+  return c;
+}`;
+function tileMat({ base, grout, tile = .125, gw = .006, rough = .35, lanes = false, caust = false, wall = false }) {
+  const m = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: rough, metalness: 0 });
+  m.onBeforeCompile = sh => {
+    Object.assign(sh.uniforms, { uTime: U.time, uSun: U.sunDir, uCaust: U.caust });
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vW; varying vec3 vNw;')
+      .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvW = (modelMatrix * vec4(transformed, 1.)).xyz; vNw = normalize(mat3(modelMatrix) * objectNormal);');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
+      varying vec3 vW; varying vec3 vNw; uniform float uTime; uniform vec3 uSun; uniform float uCaust;
+      ${NOISE_GLSL}
+      float gridLine(vec2 p, float w){ vec2 f = abs(fract(p) - .5); vec2 d = fwidth(p); vec2 a = smoothstep(.5 - w - d, .5 - w + d, f); return max(a.x, a.y); }`)
+      .replace('#include <map_fragment>', `#include <map_fragment>
+      {
+        vec3 n = abs(vNw); vec2 uv = n.y > .5 ? vW.xz : (n.x > .5 ? vW.zy : vW.xy);
+        vec2 tp = uv / ${tile.toFixed(4)};
+        float g = gridLine(tp, .5 - ${(gw / tile * .5).toFixed(4)});
+        vec2 cell = floor(tp); float v = hash12(cell);
+        vec3 col = vec3(${base.map(x => x.toFixed(3)).join(',')}) * (.94 + .1 * v);
+        col = mix(col, vec3(${grout.map(x => x.toFixed(3)).join(',')}), g);
+        ${lanes ? `
+        // lane markings on the floor: a dark stripe down each lane centre ending in a T 2 m from each wall; end-wall targets
+        if (n.y > .5) {
+          for (int i = 0; i < 8; i++) {
+            float zc = -8.75 + 2.5 * float(i);
+            float sx = step(abs(vW.z - zc), .125) * step(abs(vW.x), 22.0);
+            float tx = step(abs(vW.z - zc), .5) * step(abs(abs(vW.x) - 22.0), .125);
+            col = mix(col, vec3(.04, .07, .14), max(sx, tx));
+          }
+        } else if (n.x > .5) {
+          for (int i = 0; i < 8; i++) { float zc = -8.75 + 2.5 * float(i); float t = step(abs(vW.z - zc), .125) * step(-1.5, vW.y) * step(vW.y, -.3); float c = step(abs(vW.z - zc), .25) * step(abs(vW.y + .6), .125); col = mix(col, vec3(.04, .07, .14), max(t, c)); }
+        }` : ''}
+        diffuseColor.rgb *= col;
+      }`)
+      .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+      ${caust ? `{ float dep = clamp(-vW.y, 0., 3.); float c = caustic(vW.xz + vec2(vW.y * .35), uTime * 1.1) * uCaust;
+        float facing = ${wall ? '.55' : '1.0'}; totalEmissiveRadiance += diffuseColor.rgb * c * .55 * facing * exp(-dep * .18); }` : ''}`);
+  };
+  m.customProgramCacheKey = () => 'tile' + base + grout + lanes + caust + wall + tile;
+  return m;
+}
+const M = {
+  poolFloor: tileMat({ base: [.86, .93, .97], grout: [.62, .74, .82], tile: .125, lanes: true, caust: true, rough: .3 }),
+  poolWall: tileMat({ base: [.84, .92, .97], grout: [.6, .72, .8], tile: .125, lanes: true, caust: true, wall: true, rough: .3 }),
+  deck: tileMat({ base: [.78, .78, .75], grout: [.55, .55, .52], tile: .3, gw: .008, rough: .7 }),
+  wallTile: tileMat({ base: [.9, .9, .88], grout: [.7, .7, .68], tile: .2, rough: .45 }),
+  plaster: new THREE.MeshStandardMaterial({ color: 0xd9dcd8, roughness: .9 }),
+  steel: new THREE.MeshStandardMaterial({ color: 0x8d969e, roughness: .45, metalness: .7 }),
+  white: new THREE.MeshStandardMaterial({ color: 0xf2f2ee, roughness: .5 }),
+  blue: new THREE.MeshStandardMaterial({ color: 0x1d4f9c, roughness: .55 }),
+  dark: new THREE.MeshStandardMaterial({ color: 0x1e2328, roughness: .8 }),
+  grate: new THREE.MeshStandardMaterial({ color: 0x5c6a72, roughness: .6, metalness: .2 }),
+  seat: new THREE.MeshStandardMaterial({ color: 0x2a6fb5, roughness: .6 }),
+  red: new THREE.MeshStandardMaterial({ color: 0xc8312b, roughness: .55 }),
+  yellow: new THREE.MeshStandardMaterial({ color: 0xe8c43a, roughness: .55 }),
+  glass: new THREE.MeshStandardMaterial({ color: 0x9fb8c6, roughness: .05, metalness: .1, transparent: true, opacity: .35 }),
+};
+const box = (w, h, d) => new THREE.BoxGeometry(w, h, d);
+function mk(geo, mat, parent = scene, pos = [0, 0, 0], rot = [0, 0, 0], shadow = true) {
+  const m = new THREE.Mesh(geo, mat); m.position.set(...pos); m.rotation.set(...rot);
+  if (shadow) { m.castShadow = true; m.receiveShadow = true; }
+  parent.add(m); return m;
+}
+
+/* =====================================================================
+   3. THE HALL
+   ===================================================================== */
+const hall = new THREE.Group(); scene.add(hall);
+// pool shell: floor and four walls (visible only through the water: layer UNDER)
+{
+  const W = POOL.x1 - POOL.x0, Dz = POOL.z1 - POOL.z0, H = POOL.depth;
+  const f = mk(new THREE.PlaneGeometry(W, Dz, 1, 1), M.poolFloor, hall, [0, -H, 0], [-Math.PI / 2, 0, 0], false); f.receiveShadow = true; f.layers.set(UNDER);
+  for (const [w, pos, ry] of [[W, [0, -H / 2, POOL.z0], 0], [W, [0, -H / 2, POOL.z1], Math.PI], [Dz, [POOL.x0, -H / 2, 0], Math.PI / 2], [Dz, [POOL.x1, -H / 2, 0], -Math.PI / 2]]) {
+    const m = mk(new THREE.PlaneGeometry(w, H), M.poolWall, hall, pos, [0, ry, 0], false); m.receiveShadow = true; m.layers.set(UNDER);
+  }
+}
+// deck around the pool (a frame of slabs) and the overflow gutter grating at the water's edge
+{
+  const t = .3, gy = DECK_Y - .05;
+  const slab = (x0, x1, z0, z1) => mk(box(x1 - x0, .2, z1 - z0), M.deck, hall, [(x0 + x1) / 2, DECK_Y - .1, (z0 + z1) / 2], [0, 0, 0], false).receiveShadow = true;
+  slab(HALL.x0, HALL.x1, HALL.z0, POOL.z0 - t); slab(HALL.x0, HALL.x1, POOL.z1 + t, HALL.z1);
+  slab(HALL.x0, POOL.x0 - t, POOL.z0 - t, POOL.z1 + t); slab(POOL.x1 + t, HALL.x1, POOL.z0 - t, POOL.z1 + t);
+  const g = (w, d, x, z) => mk(box(w, .06, d), M.grate, hall, [x, gy, z], [0, 0, 0], false);
+  g(POOL.x1 - POOL.x0 + 2 * t, t, 0, POOL.z0 - t / 2); g(POOL.x1 - POOL.x0 + 2 * t, t, 0, POOL.z1 + t / 2);
+  g(t, POOL.z1 - POOL.z0, POOL.x0 - t / 2, 0); g(t, POOL.z1 - POOL.z0, POOL.x1 + t / 2, 0);
+}
+// walls, the finish-end wall with its low ribbon window (the glare source) and the roof with skylights
+{
+  const { x0, x1, z0, z1, h } = HALL, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+  const lower = 2.2;                                                                        // tiled to 2.2 m, plaster above
+  for (const [w, x, z, ry] of [[x1 - x0, cx, z0, 0], [x1 - x0, cx, z1, Math.PI], [z1 - z0, x0, cz, Math.PI / 2]]) {
+    mk(new THREE.PlaneGeometry(w, lower), M.wallTile, hall, [x, DECK_Y + lower / 2, z], [0, ry, 0], false).receiveShadow = true;
+    mk(new THREE.PlaneGeometry(w, h - lower), M.plaster, hall, [x, DECK_Y + lower + (h - lower) / 2, z], [0, ry, 0], false).receiveShadow = true;
+  }
+  // finish-end wall (x = x1): solid except the ribbon window GLARE.y0..y1 between GLARE.z0..z1
+  const wallX = x1, ry = -Math.PI / 2, gz0 = GLARE.z0, gz1 = GLARE.z1;
+  const panel = (za, zb, ya, yb, mat) => { if (zb - za < .01 || yb - ya < .01) return; mk(new THREE.PlaneGeometry(zb - za, yb - ya), mat, hall, [wallX, (ya + yb) / 2, (za + zb) / 2], [0, ry, 0], false).receiveShadow = true; };
+  panel(z0, z1, DECK_Y, GLARE.y0, M.wallTile); panel(z0, gz0, GLARE.y0, GLARE.y1, M.wallTile); panel(gz1, z1, GLARE.y0, GLARE.y1, M.wallTile);
+  panel(z0, z1, GLARE.y1, h, M.plaster);
+  // the window itself: bright daylight (an emissive panel, the same radiance the water shader reflects)
+  const winMat = new THREE.MeshBasicMaterial({ color: GLARE.rad.clone().multiplyScalar(1 / 14) });
+  winMat.color.setRGB(GLARE.rad.r / 7, GLARE.rad.g / 7, GLARE.rad.b / 7);
+  mk(new THREE.PlaneGeometry(gz1 - gz0, GLARE.y1 - GLARE.y0), winMat, hall, [wallX + .01, (GLARE.y0 + GLARE.y1) / 2, (gz0 + gz1) / 2], [0, ry, 0], false);
+  for (let z = gz0; z <= gz1 + .01; z += 1.5) mk(box(.08, GLARE.y1 - GLARE.y0, .06), M.steel, hall, [wallX - .03, (GLARE.y0 + GLARE.y1) / 2, z], [0, 0, 0], false);   // mullions
+  // roof: dark underside, steel trusses across the hall, skylight strips along it
+  mk(new THREE.PlaneGeometry(x1 - x0, z1 - z0), new THREE.MeshStandardMaterial({ color: 0x5b636b, roughness: .9 }), hall, [cx, h, cz], [Math.PI / 2, 0, 0], false);
+  const sky = new THREE.MeshBasicMaterial({ color: new THREE.Color(.9, .95, 1).multiplyScalar(2.2) });
+  for (let x = x0 + 5; x < x1 - 2; x += 8) {
+    mk(box(.35, .9, z1 - z0), M.steel, hall, [x, h - .6, cz], [0, 0, 0], false);
+    mk(new THREE.PlaneGeometry(2.6, z1 - z0 - 6), sky, hall, [x + 4, h - .02, cz], [Math.PI / 2, 0, 0], false);
+  }
+  // high-bay lamps
+  const lampMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(1, .97, .9).multiplyScalar(3) });
+  for (let x = x0 + 9; x < x1 - 4; x += 8) for (const z of [-16, -2, 12]) mk(new THREE.CylinderGeometry(.35, .35, .08, 16), lampMat, hall, [x, h - 1.3, z], [0, 0, 0], false);
+}
+// lane ropes (floating discs), backstroke flags, starting blocks at both ends, touch pads on the finish wall
+{
+  const disc = new THREE.CylinderGeometry(.06, .06, .11, 10); disc.rotateZ(Math.PI / 2);
+  const ropes = [POOL.z0 + .5 + 2.5 * 0]; for (let i = 1; i < 8; i++) ropes.push(-10 + 2.5 * i); ropes.push(POOL.z1 - .5); ropes.length = 0;
+  for (let i = 0; i <= 8; i++) ropes.push(-10 + 2.5 * i);
+  const per = Math.floor(50 / .11), cols = { red: 0xc62d2d, blue: 0x2856b8, white: 0xf0f0f0, green: 0x2a8a4a };
+  const mats = {}; for (const k in cols) mats[k] = new THREE.MeshStandardMaterial({ color: cols[k], roughness: .45 });
+  for (const [k, mat] of Object.entries(mats)) {
+    const pos = [];
+    ropes.forEach((z, ri) => { for (let j = 0; j < per; j++) { const x = POOL.x0 + .055 + j * .11, edge = Math.abs(x) > 20; const c = edge ? 'red' : ((ri === 0 || ri === 8) ? 'green' : (Math.floor(j / 3) % 2 ? 'white' : 'blue')); if (c === k) pos.push([x, .0, z]); } });
+    const im = new THREE.InstancedMesh(disc, mat, pos.length); const o = new THREE.Object3D();
+    pos.forEach((p, i) => { o.position.set(...p); o.updateMatrix(); im.setMatrixAt(i, o.matrix); });
+    im.layers.enable(UNDER); hall.add(im);
+  }
+  // backstroke flags 5 m from each end
+  const flagMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .7, side: THREE.DoubleSide, vertexColors: true });
+  for (const fx of [POOL.x0 + 5, POOL.x1 - 5]) {
+    mk(new THREE.CylinderGeometry(.008, .008, POOL.z1 - POOL.z0 + 2, 4), M.dark, hall, [fx, 1.85, 0], [Math.PI / 2, 0, 0], false);
+    for (const side of [-1, 1]) mk(new THREE.CylinderGeometry(.03, .03, 1.9, 8), M.steel, hall, [fx, DECK_Y + .9, side * (POOL.z1 + 1)], [0, 0, 0], false);
+    const g = new THREE.BufferGeometry(), p = [], c = [];
+    for (let z = POOL.z0; z < POOL.z1; z += .4) { p.push(fx, 1.85, z, fx, 1.85, z + .4, fx, 1.6, z + .2); const col = Math.round((z - POOL.z0) / .4) % 3; const rgb = [[.8, .1, .1], [1, 1, 1], [.1, .3, .8]][col]; for (let k = 0; k < 3; k++) c.push(...rgb); }
+    g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(c, 3)); g.computeVertexNormals();
+    mk(g, flagMat, hall, [0, 0, 0], [0, 0, 0], false);
+  }
+  // starting blocks (both ends): a stand, a sloped top, a back wedge, backstroke grips
+  const topG = box(.5, .05, .55), standG = box(.42, .62, .4), wedgeG = box(.48, .1, .12), gripG = new THREE.CylinderGeometry(.015, .015, .4, 6); gripG.rotateZ(Math.PI / 2);
+  for (const end of [-1, 1]) for (let i = 1; i <= 8; i++) {
+    const g = new THREE.Group(), z = laneZ(i), x = end * (POOL.x1 + .45);
+    g.position.set(x, DECK_Y, z); g.rotation.y = end > 0 ? Math.PI / 2 : -Math.PI / 2; hall.add(g);
+    mk(standG, M.white, g, [0, .31, 0]); const top = mk(topG, M.blue, g, [0, .68, 0]); top.rotation.x = -.15;
+    mk(wedgeG, M.white, g, [0, .74, .17]); mk(gripG, M.steel, g, [0, .55, -.27]);
+    const num = canvasNum(i); mk(new THREE.PlaneGeometry(.18, .18), num, g, [0, .45, -.205], [0, Math.PI, 0], false);
+  }
+  // touch pads on the finish wall (yellow-edged panels just under and above the water)
+  const padM = new THREE.MeshStandardMaterial({ color: 0x1a1d22, roughness: .5 }), padEdge = new THREE.MeshStandardMaterial({ color: 0xf2c230, roughness: .5 });
+  for (let i = 1; i <= 8; i++) { const p = mk(box(.02, .9, 2.4), padM, hall, [POOL.x1 - .012, -.3, laneZ(i)], [0, 0, 0], false); p.layers.enable(UNDER); mk(box(.03, .04, 2.4), padEdge, hall, [POOL.x1 - .012, .17, laneZ(i)], [0, 0, 0], false); }
+}
+function canvasNum(n) {
+  const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d');
+  g.fillStyle = '#fff'; g.fillRect(0, 0, 64, 64); g.fillStyle = '#123'; g.font = '700 46px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(String(n), 32, 35);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return new THREE.MeshStandardMaterial({ map: t, roughness: .6 });
+}
+// the lifeguard chairs: yours beside lane 1 near the finish end, Fahad's across, beside lane 8 near the start end
+function lifeguardChair(x, z, ry) {
+  const g = new THREE.Group(); g.position.set(x, DECK_Y, z); g.rotation.y = ry; hall.add(g);
+  for (const sx of [-.32, .32]) for (const sz of [-.3, .35]) { const leg = mk(new THREE.CylinderGeometry(.03, .03, CHAIR.seatY + .05, 8), M.white, g, [sx, (CHAIR.seatY) / 2, sz]); leg.rotation.x = sz < 0 ? .12 : -.06; }
+  mk(box(.7, .06, .55), M.seat, g, [0, CHAIR.seatY, 0]); mk(box(.7, .5, .05), M.seat, g, [0, CHAIR.seatY + .27, .27]);
+  mk(box(.75, .04, .35), M.white, g, [0, CHAIR.footY, -.42]);                                     // footboard (stand here)
+  for (let k = 0; k < 4; k++) mk(box(.6, .03, .06), M.white, g, [0, .25 + k * .25, .42 + k * .02]);  // ladder rungs at the back
+  mk(new THREE.CylinderGeometry(.02, .02, 1.4, 6), M.white, g, [.4, CHAIR.seatY + .8, .27]);        // umbrella pole
+  const ring = mk(new THREE.TorusGeometry(.2, .05, 8, 20), M.red, g, [-.42, CHAIR.seatY - .1, .2], [0, Math.PI / 2, 0]);   // rescue tube/ring
+  return g;
+}
+lifeguardChair(CHAIR.x, CHAIR.z, Math.PI);
+lifeguardChair(-14, 12.2, 0);
+// timing desk (finish end, your side), medical point (by the entrance, ~40 m from the finish end), scoreboard over the stand
+{
+  mk(box(4, .9, 1), M.white, hall, [21.5, DECK_Y + .45, -15.2]); mk(box(4, .05, 1.1), M.dark, hall, [21.5, DECK_Y + .92, -15.2]);
+  for (let k = 0; k < 3; k++) mk(box(.5, .35, .04), M.dark, hall, [20.3 + k * 1.2, DECK_Y + 1.12, -15.5], [-.25, 0, 0]);
+  mk(box(1.6, .8, .8), M.white, hall, [-16, DECK_Y + .4, -16]);
+  const crossC = document.createElement('canvas'); crossC.width = crossC.height = 128; const g = crossC.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, 128, 128); g.fillStyle = '#c62828'; g.fillRect(48, 16, 32, 96); g.fillRect(16, 48, 96, 32);
+  const ct = new THREE.CanvasTexture(crossC); ct.colorSpace = THREE.SRGBColorSpace;
+  mk(new THREE.PlaneGeometry(.8, .8), new THREE.MeshStandardMaterial({ map: ct }), hall, [-16, DECK_Y + 1.6, -16.6], [0, 0, 0], false);
+  mk(box(2.2, 2.6, .1), new THREE.MeshStandardMaterial({ color: 0x8c6d4f, roughness: .7 }), hall, [-20, DECK_Y + 1.3, HALL.z0 + .06]);   // medical room door
+  const sb = document.createElement('canvas'); sb.width = 1024; sb.height = 384; const s = sb.getContext('2d');
+  s.fillStyle = '#05080c'; s.fillRect(0, 0, 1024, 384); s.fillStyle = '#ffcf3a'; s.font = '700 40px monospace'; s.fillText('50m BACK  HEAT 3', 30, 60);
+  s.fillStyle = '#e8eef4'; s.font = '600 30px monospace';
+  ['1  4  RAYAN   ...', '2  2  YOUSEF  ...', '3  6  ZIAD    ...', '4  3  HAMZA   ...', '5  5  NOUR    ...', '6  7  SAIF    ...'].forEach((r, i) => s.fillText(r, 30, 110 + i * 42));
+  const st = new THREE.CanvasTexture(sb); st.colorSpace = THREE.SRGBColorSpace;
+  mk(new THREE.PlaneGeometry(9, 3.4), new THREE.MeshBasicMaterial({ map: st, color: 0xcccccc }), hall, [8, 8.2, HALL.z1 - .05], [0, Math.PI, 0], false);
+}
+// the stand: tiers along the far side
+const SEATS = [];
+{
+  const tierMat = new THREE.MeshStandardMaterial({ color: 0x8f969c, roughness: .85 }), seatMat = new THREE.MeshStandardMaterial({ color: 0x2b5fa8, roughness: .6 });
+  for (let r = 0; r < 7; r++) {
+    const y = DECK_Y + .45 * r, z = 15 + .85 * r;
+    mk(box(46, .45 * (r + 1), .85), tierMat, hall, [0, DECK_Y + .225 * (r + 1), z + .425], [0, 0, 0], false).receiveShadow = true;
+    for (let x = -22; x <= 22; x += .55) { if (((x * 7.3 + r * 3.1) % 1 + 1) % 1 < .55) SEATS.push({ x: x + .05, y: y + .45, z: z + .35, rotY: Math.PI }); }
+  }
+  const seatG = box(.44, .08, .38); const im = new THREE.InstancedMesh(seatG, seatMat, 7 * 81); const o = new THREE.Object3D(); let n = 0;
+  for (let r = 0; r < 7; r++) for (let x = -22; x <= 22; x += .55) { o.position.set(x, DECK_Y + .45 * r + .49, 15 + .85 * r + .45); o.updateMatrix(); im.setMatrixAt(n++, o.matrix); }
+  im.count = n; hall.add(im);
+}
+// the warm-up pool behind your chair (coaches only today: nobody watching it)
+{
+  const wx = 0, wz = -26, W = 25, D = 10;
+  const shell = tileMat({ base: [.86, .93, .97], grout: [.62, .74, .82], tile: .125, caust: true });
+  const f = mk(new THREE.PlaneGeometry(W, D), shell, hall, [wx, -1.4, wz], [-Math.PI / 2, 0, 0], false); f.layers.set(UNDER);
+  for (const [w, pos, ry] of [[W, [wx, -.7, wz - D / 2], 0], [W, [wx, -.7, wz + D / 2], Math.PI], [D, [wx - W / 2, -.7, wz], Math.PI / 2], [D, [wx + W / 2, -.7, wz], -Math.PI / 2]]) { const m = mk(new THREE.PlaneGeometry(w, 1.4), shell, hall, pos, [0, ry, 0], false); m.layers.set(UNDER); }
+}
+
+/* =====================================================================
+   4. LIGHT + the hall's own reflection (a cube capture used by the water and as the environment light)
+   ===================================================================== */
+const hemi = new THREE.HemisphereLight(0xdbe8f2, 0x6d6f6a, 1.1); scene.add(hemi); hemi.layers.enable(UNDER);
+const sun = new THREE.DirectionalLight(0xfff1dc, 2.4); sun.position.copy(U.sunDir.value).multiplyScalar(60); sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -40, right: 40, top: 40, bottom: -40, near: 1, far: 140 }); sun.shadow.bias = -.0004; sun.shadow.normalBias = .02;
+scene.add(sun, sun.target); sun.layers.enable(UNDER); renderer.shadowMap.autoUpdate = false;
+const fill = new THREE.DirectionalLight(0xcfe0ff, .5); fill.position.set(10, 20, -30); scene.add(fill); fill.layers.enable(UNDER);
+const cubeRT = new THREE.WebGLCubeRenderTarget(256, { type: THREE.HalfFloatType, generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter });
+const cubeCam = new THREE.CubeCamera(.1, 200, cubeRT); cubeCam.position.set(4, 2.4, -2); scene.add(cubeCam);
+
+/* =====================================================================
+   5. WATER: refraction of the pool shell (rendered from your eye each frame, clipped at the surface), absorption with depth,
+   Fresnel reflection of the hall (cube capture) plus the exact mirror reflection of the bright ribbon window (the glare) and the
+   sun, small waves + the chop and wakes of swimmers. Seen from below (later phases) it is the underside of the surface.
+   ===================================================================== */
+const refrRT = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, depthTexture: new THREE.DepthTexture(1, 1) });
+refrRT.depthTexture.type = THREE.FloatType;
+const MAXRIP = 18, RIP = Array.from({ length: MAXRIP }, () => new THREE.Vector4(0, 0, 0, 0));
+const waterU = {
+  uTime: U.time, tRefr: { value: refrRT.texture }, tDepth: { value: refrRT.depthTexture }, uEnv: { value: cubeRT.texture },
+  uNear: { value: camera.near }, uFar: { value: camera.far }, uSun: U.sunDir, uSunCol: { value: new THREE.Color(1, .95, .85).multiplyScalar(30) },
+  uWin: { value: new THREE.Vector4(GLARE.x, GLARE.y0, GLARE.y1, 0) }, uWinZ: { value: new THREE.Vector2(GLARE.z0, GLARE.z1) }, uWinRad: { value: new V3(GLARE.rad.r, GLARE.rad.g, GLARE.rad.b) },
+  uRip: { value: RIP }, uEnvInt: { value: .8 }, uScatter: { value: new V3(.012, .075, .11) },
+};
+const waterMat = new THREE.ShaderMaterial({
+  uniforms: waterU,
+  vertexShader: `varying vec3 vW; varying vec4 vClip;
+    void main(){ vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; vClip = projectionMatrix * viewMatrix * w; gl_Position = vClip; }`,
+  fragmentShader: `
+    #include <common>
+    #include <packing>
+    uniform float uTime, uNear, uFar, uEnvInt; uniform sampler2D tRefr, tDepth; uniform samplerCube uEnv;
+    uniform vec3 uSun, uSunCol, uWinRad, uScatter; uniform vec4 uWin; uniform vec2 uWinZ; uniform vec4 uRip[${MAXRIP}];
+    varying vec3 vW; varying vec4 vClip;
+    // height field: a few gentle long waves (the pool is calm) + the chop of each swimmer (x, z, strength, unused)
+    vec2 waveGrad(vec2 p, float t){
+      vec2 g = vec2(0.);
+      const int N = 6;
+      vec4 W[N]; // dir.x, dir.y, k, amp
+      W[0] = vec4(.92, .39, 1.9, .0035); W[1] = vec4(-.31, .95, 2.7, .0025); W[2] = vec4(.62, -.78, 4.3, .0016);
+      W[3] = vec4(-.86, -.5, 6.9, .0011); W[4] = vec4(.2, .98, 11., .0007); W[5] = vec4(.99, -.12, 17., .00045);
+      for (int i = 0; i < N; i++) { float k = W[i].z; float ph = dot(W[i].xy, p) * k + t * sqrt(9.8 * k) * .55 + float(i) * 1.7; g += W[i].xy * k * W[i].w * cos(ph); }
+      for (int i = 0; i < ${MAXRIP}; i++) {
+        vec4 r = uRip[i]; if (r.z <= 0.) continue;
+        vec2 d = p - r.xy; float rr = length(d) + 1e-4; if (rr > 3.2) continue;
+        float fall = exp(-rr * 1.35) * r.z;
+        float ph = rr * 9. - t * 7.3 + r.w;
+        g += d / rr * 9. * .006 * fall * cos(ph);
+        // the chop right around a swimmer: hash-like noise
+        vec2 q = p * 6.3 + t * vec2(3.1, -2.7);
+        g += vec2(sin(q.x + 2.1 * sin(q.y * 1.3)), cos(q.y * 1.1 - 1.7 * sin(q.x * .9))) * .05 * exp(-rr * 2.4) * r.z;
+      }
+      return g;
+    }
+    void main(){
+      vec2 g = waveGrad(vW.xz, uTime);
+      vec3 N = normalize(vec3(-g.x, 1., -g.y));
+      vec3 V = normalize(cameraPosition - vW);
+      bool below = cameraPosition.y < 0.;
+      if (below) N = -N;
+      float cosI = clamp(dot(N, V), 0., 1.);
+      float F = .02 + .98 * pow(1. - cosI, 5.);
+      vec3 R = reflect(-V, N);
+      // reflection: the hall (cube capture), then the window (exact mirror geometry), then the sun
+      vec3 refl = textureCube(uEnv, vec3(-R.x, R.y, R.z)).rgb * uEnvInt;
+      if (R.x > 1e-3) {
+        float s = (uWin.x - vW.x) / R.x; vec3 h = vW + R * s;
+        float sy = smoothstep(uWin.y - .05, uWin.y + .05, h.y) * (1. - smoothstep(uWin.z - .05, uWin.z + .05, h.y));
+        float sz = smoothstep(uWinZ.x - .1, uWinZ.x + .1, h.z) * (1. - smoothstep(uWinZ.y - .1, uWinZ.y + .1, h.z));
+        refl += uWinRad * sy * sz;
+      }
+      refl += uSunCol * pow(max(dot(R, uSun), 0.), 900.);
+      // refraction: what lies under the surface, bent by the waves, absorbed and scattered with the length of water it is seen through
+      vec2 suv = vClip.xy / vClip.w * .5 + .5;
+      float surfZ = vClip.w;
+      vec2 off = N.xz * .045 / max(surfZ * .15, 1.);
+      float dUnder = -perspectiveDepthToViewZ(texture2D(tDepth, suv + off).r, uNear, uFar);
+      if (dUnder < surfZ) { off = vec2(0.); dUnder = -perspectiveDepthToViewZ(texture2D(tDepth, suv).r, uNear, uFar); }
+      vec3 refr = texture2D(tRefr, suv + off).rgb;
+      float L = max(dUnder - surfZ, 0.) / max(abs(dot(normalize(vW - cameraPosition), normalize(vec3(viewMatrix[0][2], viewMatrix[1][2], viewMatrix[2][2]) * -1.))), .2);
+      vec3 sigma = vec3(.48, .11, .075);
+      vec3 Tr = exp(-sigma * L);
+      refr = refr * Tr + uScatter * (1. - Tr);
+      vec3 col = mix(refr, refl, F);
+      // white water where swimmers churn it
+      float churn = 0.; for (int i = 0; i < ${MAXRIP}; i++) { vec4 r = uRip[i]; if (r.z <= 0.) continue; float rr = length(vW.xz - r.xy); churn += smoothstep(1.1, .2, rr) * r.z; }
+      float foam = smoothstep(.55, 1., churn * (.6 + .4 * sin(vW.x * 23. + uTime * 9.) * sin(vW.z * 19. - uTime * 7.)));
+      col = mix(col, vec3(.85, .9, .92), foam * .55);
+      gl_FragColor = vec4(col, 1.);
+      #include <tonemapping_fragment>
+      #include <colorspace_fragment>
+    }`,
+});
+const water = mk(new THREE.PlaneGeometry(POOL.x1 - POOL.x0, POOL.z1 - POOL.z0, 1, 1), waterMat, scene, [0, 0, 0], [-Math.PI / 2, 0, 0], false);
+// the warm-up pool's water (same shader, no swimmers)
+mk(new THREE.PlaneGeometry(25, 10), waterMat, scene, [0, -.05, -26], [-Math.PI / 2, 0, 0], false);
+const clipUnder = [new THREE.Plane(new V3(0, -1, 0), 0)];
+
+/* =====================================================================
+   6. PEOPLE (module aq01/people.js; a simple stand-in until it is there)
+   ===================================================================== */
+let PEOPLE = null;
+if (!params.has('standin')) try { PEOPLE = await import('./aq01/people.js'); } catch (e) { console.warn('people.js not ready, stand-ins used', e.message); }
+const skinTones = [0xc68c62, 0xb7835c, 0xd6a27c, 0x9a6a47, 0xe0b18e];
+function standIn(kind, o = {}) {                       // a crude figure (only until aq01/people.js exists)
+  const root = new THREE.Group(), mat = new THREE.MeshStandardMaterial({ color: o.skin || 0xc68c62, roughness: .55 }), cl = new THREE.MeshStandardMaterial({ color: o.suit || o.top || 0x223355, roughness: .6 });
+  const h = o.height || (kind === 'kid' ? 1.55 : 1.75), hip = h * .52;
+  const body = new THREE.Group(); root.add(body);
+  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(h * .1, h * .25, 4, 10), cl); torso.position.y = h * .2; body.add(torso);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(h * .068, 12, 10), mat); head.position.y = h * .44; body.add(head);
+  if (o.cap) { const cap = new THREE.Mesh(new THREE.SphereGeometry(h * .072, 12, 8, 0, TAU, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: o.cap, roughness: .3 })); cap.position.y = h * .45; body.add(cap); }
+  const limb = (r, l, x, y, m) => { const g = new THREE.Group(); g.position.set(x, y, 0); const c = new THREE.Mesh(new THREE.CapsuleGeometry(r, l, 3, 8), m); c.position.y = -l / 2 - r; g.add(c); body.add(g); return g; };
+  const aL = limb(h * .03, h * .3, -h * .13, h * .33, mat), aR = limb(h * .03, h * .3, h * .13, h * .33, mat), lL = limb(h * .045, h * .38, -h * .06, 0, kind === 'kid' ? mat : cl), lR = limb(h * .045, h * .38, h * .06, 0, kind === 'kid' ? mat : cl);
+  root.traverse(m => { if (m.isMesh) { m.castShadow = true; m.layers.enable(UNDER); } });
+  const P = { root, hipHeight: hip, state: 'stand', t: 0, set(s) { if (s !== this.state) { this.state = s; this.t = 0; } }, update(dt) {
+    this.t += dt; const t = this.t, s = this.state;
+    body.rotation.set(0, 0, 0); body.position.set(0, 0, 0); aL.rotation.set(0, 0, 0); aR.rotation.set(0, 0, 0); lL.rotation.set(0, 0, 0); lR.rotation.set(0, 0, 0);
+    if (s === 'backstroke') { body.rotation.x = -Math.PI / 2; aL.rotation.x = t * 5; aR.rotation.x = t * 5 + Math.PI; lL.rotation.x = Math.sin(t * 12) * .3; lR.rotation.x = -Math.sin(t * 12) * .3; body.position.y = -.05; }
+    else if (s === 'breaststroke' || s === 'tread' || s === 'stopScream') { body.rotation.x = s === 'breaststroke' ? Math.PI / 2 - .2 : .2; aL.rotation.z = Math.sin(t * 5) * .8; aR.rotation.z = -Math.sin(t * 5) * .8; body.position.y = -.2; }
+    else if (s === 'holdWall') { body.rotation.x = .25; aL.rotation.x = aR.rotation.x = -2.6; body.position.y = -.5; }
+    else if (s === 'drift') { body.rotation.x = -Math.PI / 2; aL.rotation.z = -.5; aR.rotation.z = .5; body.position.y = -.08; }
+    else if (s === 'rollFaceDown') { body.rotation.x = -Math.PI / 2; body.rotation.z = Math.PI * Math.min(1, t / 2.5); body.position.y = -.08; }
+    else if (s === 'sink' || s === 'bottom') { body.rotation.x = Math.PI / 2; aL.rotation.x = aR.rotation.x = -2.4; body.position.y = 0; }
+    else if (s === 'blockReady') { body.rotation.x = 1.0; aL.rotation.x = aR.rotation.x = -1.2; }
+    else if (s === 'point') { aR.rotation.x = -1.5; }
+    else { aL.rotation.z = Math.sin(t * 1.3) * .03; }
+  }, speedFactor() { return 1; }, dispose() {} };
+  return P;
+}
+const makeKid = o => PEOPLE ? PEOPLE.makeKid(o) : standIn('kid', o);
+const makeAdult = o => PEOPLE ? PEOPLE.makeAdult(o) : standIn('adult', o);
+function addPerson(p, layerUnder = false) { scene.add(p.root); p.root.traverse(m => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; if (layerUnder) m.layers.enable(UNDER); } }); return p; }
+
+/* =====================================================================
+   7. THE SESSION: heats, the casualty, the officials. Times in game seconds; T0 = the moment Rayan slips under.
+   ===================================================================== */
+const capCols = [0xe53935, 0x1e88e5, 0xfdd835, 0x43a047, 0xf4511e, 0x8e24aa, 0x00acc1, 0xffffff];
+const suitCols = [0x101a2e, 0x0f0f12, 0x1b2a4a, 0x2a1020, 0x0c2a1c, 0x14161c, 0x231a10, 0x0f1a26];
+const kidName = ['', 'يوسف', 'زياد', 'حمزة', 'ريان', 'نور', 'سيف', 'خالد', 'مازن'];
+const S = { t: 0, phase: 'brief', T0: null, heat3: [], heat4: [], heat5: [], officials: {}, events: [], log: {}, ended: false };
+function mkSwimmer(lane, heat, extra = {}) {
+  const k = addPerson(makeKid({ cap: capCols[(lane + heat) % 8], suit: suitCols[(lane * 3 + heat) % 8], skin: skinTones[(lane * 7 + heat * 3) % 5], height: 1.48 + ((lane * 13 + heat * 7) % 17) / 100, sex: (lane + heat) % 3 === 0 ? 'f' : 'm', seed: lane * 10 + heat, ...extra }), true);
+  return { lane, heat, p: k, x: 0, y: 0, z: laneZ(lane), speed: 1.2, st: 'idle', t: 0, done: false };
+}
+// heat 3 (50 m backstroke): in the water at the START end, then racing to the finish end where they hold the wall; Rayan in lane 4
+for (let lane = 1; lane <= 8; lane++) {
+  const s = mkSwimmer(lane, 3); s.speed = [1.24, 1.31, 1.27, 1.29, 1.33, 1.22, 1.26, 1.19][lane - 1]; s.x = POOL.x0 + .55;
+  s.p.set('backstrokeStart', { blend: 0 }); s.st = 'wait'; S.heat3.push(s);
+}
+const rayan = S.heat3[3];
+// heat 4 (50 m breaststroke): waiting behind the blocks at the finish end; Omar in lane 5
+for (let lane = 1; lane <= 8; lane++) { const s = mkSwimmer(lane, 4); s.x = POOL.x1 + 1.45; s.st = 'behind'; s.p.set('standBehindBlock', { blend: 0 }); S.heat4.push(s); }
+const omar = S.heat4[4];
+// heat 5: only called at the end (the forced cue: the swimmer on block 4 sees him)
+for (let lane = 1; lane <= 8; lane++) { const s = mkSwimmer(lane, 5); s.x = POOL.x1 + 3.2; s.st = 'away'; s.p.set('stand', { blend: 0 }); s.p.root.visible = false; S.heat5.push(s); }
+// officials and the second lifeguard
+const O = S.officials;
+O.ref = addPerson(makeAdult({ role: 'referee', top: 0xf4f4f0, bottom: 0xf0f0ec, skin: skinTones[1], hair: 0x1b1b1b, height: 1.78, sex: 'm', seed: 1 }));
+O.starter = addPerson(makeAdult({ role: 'official', top: 0xf2f2f2, bottom: 0x1d2a44, skin: skinTones[3], hair: 0x111111, height: 1.72, sex: 'm', seed: 2 }));
+O.timing = addPerson(makeAdult({ role: 'official', top: 0xf2f2f2, bottom: 0x1d2a44, skin: skinTones[2], hair: 0x2a2018, height: 1.68, sex: 'm', seed: 3 }));
+O.fahad = addPerson(makeAdult({ role: 'lifeguard', top: 0xd32f2f, bottom: 0x1a2340, skin: skinTones[0], hair: 0x111111, height: 1.8, sex: 'm', seed: 4 }));
+O.starter3 = addPerson(makeAdult({ role: 'official', top: 0xf2f2f2, bottom: 0x1d2a44, skin: skinTones[4], hair: 0x222222, height: 1.7, sex: 'm', seed: 5 }));
+O.coach = addPerson(makeAdult({ role: 'coach', top: 0x1e3a6e, bottom: 0x1e3a6e, skin: skinTones[2], hair: 0x111111, height: 1.76, sex: 'm', seed: 6 }));
+const place = (p, x, z, ry, y = DECK_Y) => { p.root.position.set(x, y + p.hipHeight, z); p.root.rotation.y = ry; };
+place(O.ref, POOL.x1 + 2.2, -9.5, Math.PI / 2 + .9);              // chief referee at the finish end corner, facing the pool / blocks
+place(O.starter, POOL.x1 + 2.6, 12.0, Math.PI / 2 - .7);
+place(O.timing, 21.5, -14.4, Math.PI);
+place(O.fahad, -14, 12.6, Math.PI); O.fahad.set('sitHigh', { blend: 0 }); O.fahad.root.position.y = DECK_Y + CHAIR.seatY + .02 + O.fahad.hipHeight * .2;
+place(O.starter3, POOL.x0 - 2.2, 11, -Math.PI / 2 + .6);
+place(O.coach, 10, 12.2, Math.PI);
+let crowd = null;
+if (PEOPLE && PEOPLE.makeCrowd) { crowd = PEOPLE.makeCrowd({ seats: SEATS, seed: 7 }); scene.add(crowd.object); }
+
+/* ---- the casualty's script: touch, no grip on the wall, drift on the back, roll face-down, slip under (T0), sink, lie on the bottom ---- */
+function updateRayan(dt) {
+  const s = rayan;
+  if (s.st === 'touched') {                          // T-12 .. T-9.5: drifts back from the wall on his back, arms loose
+    s.t += dt; s.x = POOL.x1 - .6 - Math.min(.9, s.t * .18); s.p.set('drift');
+    if (s.t > 9.5) { s.st = 'roll'; s.t = 0; s.p.set('rollFaceDown'); }
+  } else if (s.st === 'roll') {
+    s.t += dt; s.x -= dt * .03;
+    if (s.t > 2.5) { s.st = 'sink'; s.t = 0; s.p.set('sink'); S.T0 = S.t; log('T0', 0); }
+  } else if (s.st === 'sink') {
+    s.t += dt; s.y = -1.82 * mj(s.t / 9.5); s.x -= dt * .02;
+    if (s.t > 9.5) { s.st = 'bottom'; s.p.set('bottom'); }
+  }
+  s.p.root.position.set(s.x, s.y, s.z);
+}
+
+/* =====================================================================
+   8. FLOW: lines on the left (chat), events at set times, the T clock
+   ===================================================================== */
+const dlg = $('#dlg');
+function say(who, key, cls = '') {
+  const el = document.createElement('div'); el.className = 'msg ' + cls; el.innerHTML = `<b>${L2(NAMES[who])}</b>${L2(LINES[key])}`;
+  dlg.appendChild(el); [...dlg.children].slice(0, -1).forEach(c => c.classList.add('old')); while (dlg.children.length > 4) dlg.firstChild.remove();
+  S.lastLine = { who, key, t: S.t };
+}
+const AT = [];                                       // [time or fn, action, once]
+const at = (t, fn) => AT.push({ t, fn, done: false });
+const atT = (dt, fn) => AT.push({ T: dt, fn, done: false });   // relative to T0
+function log(k, v) { if (S.log[k] === undefined) S.log[k] = v; }
+// before the casualty
+at(1.5, () => say('mgr', 'mgr_open', 'radio'));
+at(9, () => { AUDIO && AUDIO.whistle('series', { x: POOL.x0 - 2, y: 1.6, z: 11 }); });
+at(12.5, () => { say('starter', 'st_marks3'); });
+at(15, () => { S.heat3.forEach(s => { s.st = 'race'; s.p.set('backstroke', { go: true }); }); AUDIO && AUDIO.startSignal({ x: POOL.x0 - 1, y: 1, z: 0 }); });
+at(21, () => say('timing', 'timing_ask'));
+at(24, () => { S.fahadWalk = 1; });
+at(33, () => say('fahad', 'fahad_swap'));
+// after the casualty (T0 = Rayan slips under)
+atT(-6, () => { say('ref', 'ref_out'); AUDIO && AUDIO.whistle('series', { x: POOL.x1 + 2.2, y: 1.6, z: -9.5 }); S.heat3.forEach((s, i) => { if (s !== rayan) { s.st = 'climb'; s.t = -i * .7; } }); });
+atT(20, () => { if (S.stopped) return; AUDIO && AUDIO.shout && AUDIO.shout({ x: POOL.x1 + 1.3, y: 1.5, z: laneZ(5) }, undefined, .75); say('omar', 'omar_alert', 'alert'); omar.st = 'point'; omar.p.set('point', { arm: 'R' }); log('omarAlert', 20); });
+atT(23.5, () => { if (S.stopped) return; say('ref', 'ref_dismiss'); });
+atT(30, () => { if (S.stopped) return; omar.st = 'behind'; omar.p.set('standBehindBlock'); });
+atT(40, () => { if (S.stopped) return; S.heat4.forEach(s => { s.st = 'onBlock'; s.p.set('blockReady'); }); });
+atT(45, () => { if (S.stopped) return; say('ref', 'ref_marks'); });
+atT(60, () => { if (S.stopped) return; S.heat4.forEach(s => { s.st = 'dive'; s.t = 0; s.p.set('dive'); }); AUDIO && AUDIO.startSignal({ x: POOL.x1 + 1, y: 1, z: 0 }); log('heat4Started', 60); });
+atT(100, () => { if (S.stopped) return; say('ref', 'ref_heat5'); S.heat5.forEach(s => { s.p.root.visible = true; s.st = 'behind'; s.p.set('standBehindBlock'); }); });
+atT(120, () => { if (S.stopped) return; const k = S.heat5[3]; k.st = 'point'; k.p.set('point', { arm: 'R' }); say('kid', 'kid_scream', 'alert'); S.crowdShoutAt = S.t + .9; if (AUDIO) { AUDIO.shout && AUDIO.shout({ x: POOL.x1 + 1.1, y: 1.4, z: laneZ(4) }, undefined, 1); AUDIO.swell ? AUDIO.swell(.9, 5) : AUDIO.cheer(1, 4); } log('forced', 120); });
+
+/* ---- the heats: positions per frame ---- */
+function updateHeats(dt) {
+  for (const s of S.heat3) {
+    if (s === rayan && s.st !== 'race' && s.st !== 'wait') { updateRayan(dt); s.p.update(dt); continue; }
+    if (s.st === 'race') {
+      s.x += s.speed * dt;
+      if (s.x >= POOL.x1 - .65) {
+        s.x = POOL.x1 - .65;
+        if (s === rayan) { s.st = 'touched'; s.t = 0; s.p.set('touchWall'); AUDIO && AUDIO.splash({ x: s.x, y: 0, z: s.z }, .3); }
+        else { s.st = 'hold'; s.p.set('touchWall'); setTimeout(() => s.st === 'hold' && s.p.set('holdWall'), 600); AUDIO && AUDIO.splash({ x: s.x, y: 0, z: s.z }, .5); }
+        if (!S.firstTouch) { S.firstTouch = S.t; AUDIO && AUDIO.cheer(.8, 6); }
+      }
+      if (Math.random() < dt * 2.4) AUDIO && AUDIO.splash({ x: s.x, y: 0, z: s.z }, .25);
+    } else if (s.st === 'climb') {
+      s.t += dt;
+      if (s.t > 0 && s.p.state !== 'climbOut') s.p.set('climbOut');
+      if (s.t > 0) { const c = s.p.climbCurve ? s.p.climbCurve(s.t) : { up: Math.min(1, s.t / 2) * .9, forward: Math.min(1, s.t / 2) * .9 }; s.y = c.up; s.cx = c.forward; }
+      if (s.t > 2.4) { s.st = 'walkAway'; s.t = 0; s.p.set('walk'); s.y = DECK_Y + s.p.hipHeight; s.x = POOL.x1 + .9; }
+    } else if (s.st === 'walkAway') {
+      s.t += dt; s.z += dt * (s.z > 0 ? 1.1 : -1.1) * .9; s.x += dt * .5;
+      if (s.t > 9) { s.st = 'gone'; s.p.root.visible = false; }
+    }
+    if (s !== rayan || s.st === 'race' || s.st === 'wait') {
+      if (s.st === 'climb') s.p.root.position.set(POOL.x1 - .55 + (s.cx || 0), (s.y || 0), s.z);
+      else if (s.st === 'walkAway') { s.p.root.position.set(s.x, s.y, s.z); s.p.root.rotation.y = s.z > 0 ? 0 : Math.PI; }
+      else { s.p.root.position.set(s.x, 0, s.z); s.p.root.rotation.y = -Math.PI / 2; }
+      if (s.st === 'hold' || s.st === 'race' || s.st === 'wait') s.p.root.rotation.y = -Math.PI / 2;
+    }
+    s.p.update(dt);
+  }
+  for (const s of S.heat4) {
+    if (s.st === 'behind') { s.p.root.position.set(POOL.x1 + 1.45, DECK_Y + s.p.hipHeight, s.z); s.p.root.rotation.y = Math.PI / 2; }
+    else if (s.st === 'point') { s.p.root.position.set(POOL.x1 + 1.2, DECK_Y + s.p.hipHeight, s.z); s.p.root.rotation.y = Math.PI / 2 + (s === omar ? -.35 : 0); }
+    else if (s.st === 'onBlock') { s.p.root.position.set(POOL.x1 + .5, DECK_Y + .7 + s.p.hipHeight * .62, s.z); s.p.root.rotation.y = Math.PI / 2; }
+    else if (s.st === 'dive') {
+      s.t += dt; const d = s.p.diveCurve ? s.p.diveCurve(s.t) : { forward: Math.min(4.5, s.t * 3), up: s.t < .5 ? .6 - s.t * 1.2 : -.3 };
+      s.p.root.position.set(POOL.x1 + .5 - d.forward, DECK_Y + .7 + s.p.hipHeight * .62 + d.up, s.z); s.p.root.rotation.y = Math.PI / 2;
+      if (s.t > .55 && !s.splashed) { s.splashed = 1; AUDIO && AUDIO.diveEntry({ x: s.p.root.position.x, y: 0, z: s.z }); }
+      if (s.p.diveDone || s.t > 2.1) { s.st = 'swim'; s.x = s.p.root.position.x; s.p.set('breaststroke'); }
+    } else if (s.st === 'swim') {
+      const f = s.p.speedFactor ? s.p.speedFactor() : 1; s.x -= dt * 1.05 * f; s.p.root.position.set(s.x, 0, s.z); s.p.root.rotation.y = Math.PI / 2;
+      if (s.x < POOL.x0 + .7) { s.st = 'hold'; s.p.set('holdWall'); }
+      if (Math.random() < dt * 1.5) AUDIO && AUDIO.splash({ x: s.x, y: 0, z: s.z }, .2);
+    } else if (s.st === 'hold') { s.p.root.position.set(POOL.x0 + .7, 0, s.z); s.p.root.rotation.y = Math.PI / 2; }
+    s.p.update(dt);
+  }
+  for (const s of S.heat5) {
+    if (!s.p.root.visible) continue;
+    s.p.root.position.set(POOL.x1 + (s.st === 'point' ? 1.1 : 1.6), DECK_Y + s.p.hipHeight, s.z); s.p.root.rotation.y = Math.PI / 2 + (s.st === 'point' ? .3 : 0);
+    s.p.update(dt);
+  }
+  // Fahad leaves his chair to hold the touch pad at the timing desk (facing the deck, not the water)
+  if (S.fahadWalk === 1) { O.fahad.set('walk'); S.fahadWalk = 2; S.fahadT = 0; }
+  if (S.fahadWalk === 2) {
+    S.fahadT += dt; const k = mj(S.fahadT / 22), a = new V3(-14, 0, 12.6), b = new V3(22.6, 0, -14.6);
+    const pos = S.fahadT < 2 ? a.clone().setZ(12.6 + S.fahadT * .7) : null;
+    const path = [a, new V3(-14, 0, 13.6), new V3(30, 0, 13.6), new V3(30, 0, -14.6), b];
+    const seg = pathAt(path, k); O.fahad.root.position.set(seg.p.x, DECK_Y + O.fahad.hipHeight, seg.p.z); O.fahad.root.rotation.y = Math.atan2(-seg.d.x, -seg.d.z);
+    if (k >= 1) { S.fahadWalk = 3; O.fahad.set('stand'); O.fahad.root.rotation.y = Math.PI; }
+  }
+  for (const k in O) O[k].update(dt);
+}
+function pathAt(pts, k) {
+  let L = 0; const seg = []; for (let i = 1; i < pts.length; i++) { const l = pts[i].distanceTo(pts[i - 1]); seg.push(l); L += l; }
+  let d = k * L; for (let i = 0; i < seg.length; i++) { if (d <= seg[i] || i === seg.length - 1) { const u = clamp(d / seg[i], 0, 1); return { p: pts[i].clone().lerp(pts[i + 1], u), d: pts[i + 1].clone().sub(pts[i]).normalize() }; } d -= seg[i]; }
+}
+// ripple sources for the water: every swimmer near the surface
+function updateRipples() {
+  let n = 0;
+  const add = (x, z, a) => { if (n < MAXRIP) RIP[n++].set(x, z, a, n * 1.37); };
+  for (const s of [...S.heat3, ...S.heat4]) {
+    const p = s.p.root.position; if (!s.p.root.visible || Math.abs(p.y) > .6 || p.x > POOL.x1 || p.x < POOL.x0) continue;
+    const a = s.st === 'race' || s.st === 'swim' ? 1 : s.st === 'dive' ? 1.2 : (s.st === 'hold' ? .35 : (s === rayan && (s.st === 'touched' || s.st === 'roll') ? .12 : 0));
+    if (a > 0) add(p.x, p.z, a);
+  }
+  for (let i = n; i < MAXRIP; i++) RIP[i].set(0, 0, 0, 0);
+}
+
+/* =====================================================================
+   9. YOU: the chair (sit / stand), climbing down, the deck, the whistle; where you look (the scan)
+   ===================================================================== */
+const P = { pos: new V3(CHAIR.x, 0, CHAIR.z - .02), yaw: -2.5, pitch: -.2, mode: 'seat', eyeY: 0, eyeT: 0, vel: new V3() };
+const EYE = { seat: DECK_Y + CHAIR.seatY + .8, stand: DECK_Y + CHAIR.seatY + 1.62, deck: DECK_Y + 1.64 };   // standing up on the chair's platform
+P.eyeY = EYE.seat;
+const input = { keys: {}, locked: false };
+addEventListener('keydown', e => {
+  input.keys[e.code] = true;
+  if (!S.running) return;
+  if (e.code === 'Space') { if (P.mode === 'seat') P.mode = 'stand'; else if (P.mode === 'stand') P.mode = 'seat'; e.preventDefault(); }
+  if (e.code === 'KeyE') { if (P.mode !== 'deck') { P.mode = 'deck'; P.pos.set(CHAIR.x - .1, 0, CHAIR.z + .9); } else if (P.pos.distanceTo(new V3(CHAIR.x, 0, CHAIR.z)) < 1.6) { P.mode = 'seat'; P.pos.set(CHAIR.x, 0, CHAIR.z - .02); } }
+  if (e.code === 'KeyF') whistle();
+});
+addEventListener('keyup', e => { input.keys[e.code] = false; });
+addEventListener('mousemove', e => { if (!input.locked || S.ended) return; P.yaw -= e.movementX * .0021; P.pitch = clamp(P.pitch - e.movementY * .0021, -1.45, 1.35); });
+document.addEventListener('pointerlockchange', () => { input.locked = document.pointerLockElement === canvas; });
+canvas.addEventListener('click', () => { if (S.running && !input.locked && !S.ended) canvas.requestPointerLock?.(); });
+function whistle() {
+  if (S.whistled || S.ended) return;
+  AUDIO && AUDIO.whistle('long', { x: camera.position.x, y: camera.position.y, z: camera.position.z });
+  say('you', 'you_stop', 'you');
+  if (S.T0 == null) { S.falseAlarms = (S.falseAlarms || 0) + 1; return; }      // nothing has happened yet: a false alarm (counted, the session goes on)
+  S.whistled = true; S.stopped = true; log('signal', S.t - S.T0);
+  // everyone stops: heat 4 stays on/behind the blocks, the referee turns to you
+  for (const s of S.heat4) if (s.st === 'onBlock' || s.st === 'behind' || s.st === 'point') { s.st = 'behind'; s.p.set('stand'); }
+  O.ref.set('stand');
+  S.endAt = S.t + 3.2;                                                          // (game time)
+}
+// gaze: where the centre of view meets the water; lane 4 near the finish wall counts as "looking at him" after 0.6 s
+const ray = new THREE.Raycaster(), GZ = { lane4: 0, firstLook: null, lookedSeated: 0, lookedClear: 0 };
+function updateGaze(dt) {
+  const dir = new V3(0, 0, -1).applyQuaternion(camera.quaternion), to = rayan.p.root.position.clone().sub(camera.position).normalize();
+  const onSpot = dir.dot(to) > Math.cos(7 * Math.PI / 180);                         // within ~7 degrees of him
+  if (onSpot && S.T0 != null) {
+    GZ.lane4 += dt;
+    if (GZ.lane4 > .6 && GZ.firstLook == null) { GZ.firstLook = S.t - S.T0; GZ.firstMode = P.mode; GZ.firstGlare = glareCover(); }
+    if (P.mode === 'seat') GZ.lookedSeated += dt; else GZ.lookedClear += dt;
+  } else GZ.lane4 = 0;
+}
+function glareCover(eye = camera.position) {
+  const b = rayan.p.root.position, ax = new V3(1, 0, 0).applyQuaternion(rayan.p.root.quaternion); let hit = 0, n = 0;
+  for (let i = -4; i <= 4; i++) {
+    const B = b.clone().addScaledVector(ax, i * .19); if (B.y > -.2) continue; n++;
+    const d = B.clone().sub(eye), tc = eye.y / (eye.y - B.y), Pp = eye.clone().addScaledVector(d, tc);   // where the line of sight meets the surface
+    if (d.x <= 0) continue; const s = (GLARE.x - Pp.x) / d.x, y = -d.y * s, z = Pp.z + d.z * s;           // its mirror ray up to the end wall
+    if (y > GLARE.y0 && y < GLARE.y1 && z > GLARE.z0 && z < GLARE.z1) hit++;
+  }
+  return n ? hit / n : 0;
+}
+function updatePlayer(dt) {
+  const k = input.keys, fwd = new V3(-Math.sin(P.yaw), 0, -Math.cos(P.yaw)), right = new V3(Math.cos(P.yaw), 0, -Math.sin(P.yaw));
+  if (P.mode === 'deck') {
+    const want = new V3(); if (k.KeyW || k.ArrowUp) want.add(fwd); if (k.KeyS || k.ArrowDown) want.sub(fwd); if (k.KeyD || k.ArrowRight) want.add(right); if (k.KeyA || k.ArrowLeft) want.sub(right);
+    if (want.lengthSq()) want.normalize().multiplyScalar(k.ShiftLeft ? 3.2 : 1.6);
+    P.vel.lerp(want, Math.min(1, dt * 8)); P.pos.addScaledVector(P.vel, dt);
+    // stay on the deck: out of the pools (phase 1), inside the hall, off the stand
+    const inPool = (x, z, m = .35) => x > POOL.x0 - m && x < POOL.x1 + m && z > POOL.z0 - m && z < POOL.z1 + m;
+    if (inPool(P.pos.x, P.pos.z)) { const dx = Math.min(P.pos.x - (POOL.x0 - .35), (POOL.x1 + .35) - P.pos.x), dz = Math.min(P.pos.z - (POOL.z0 - .35), (POOL.z1 + .35) - P.pos.z);
+      if (dx < dz) P.pos.x = P.pos.x < 0 ? POOL.x0 - .35 : POOL.x1 + .35; else P.pos.z = P.pos.z < 0 ? POOL.z0 - .35 : POOL.z1 + .35; }
+    P.pos.x = clamp(P.pos.x, HALL.x0 + .4, HALL.x1 - .4); P.pos.z = clamp(P.pos.z, -21, 14.4);
+  }
+  const target = EYE[P.mode]; P.eyeY += (target - P.eyeY) * Math.min(1, dt * 5);
+  const bob = P.mode === 'deck' ? Math.sin(S.t * 9) * .012 * Math.min(1, P.vel.length() / 1.6) : 0;
+  const fz = P.mode === 'stand' ? .4 : 0;                                       // standing on the footboard, in front of the seat
+  camera.position.set(P.pos.x, P.eyeY + bob, P.pos.z + fz);
+  camera.rotation.set(P.pitch, P.yaw, 0);
+  const h = $('#hint');
+  h.innerHTML = [P.mode === 'seat' ? T('h_seat') : P.mode === 'stand' ? T('h_stand') : '', P.mode === 'deck' ? (P.pos.distanceTo(new V3(CHAIR.x, 0, CHAIR.z)) < 1.6 ? T('h_up') : '') : T('h_down'), T('h_whistle')].filter(Boolean).map(x => `<span>${x}</span>`).join('');
+}
+
+/* =====================================================================
+   10. AUDIO (module aq01/audio.js; silent until it is there)
+   ===================================================================== */
+let AUDIO = null, AUMOD = null;
+if (!params.has('mute')) try { AUMOD = await import('./aq01/audio.js'); } catch (e) { console.warn('audio.js not ready', e.message); }
+function startAudio() {
+  if (AUDIO || !AUMOD || params.has('mute')) return;
+  try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); AUDIO = AUMOD.createHallAudio(ctx); AUDIO.startAmbience(); AUDIO.setCrowd(.7); } catch (e) { console.warn('audio failed', e); AUDIO = null; }
+}
+
+/* =====================================================================
+   11. END OF PHASE 1: your timeline
+   ===================================================================== */
+function fmt(s) { if (s == null) return '—'; const sign = s < 0 ? '−' : '+'; s = Math.abs(s); return `${sign}${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`; }
+function endPhase1(forced) {
+  if (S.ended) return; S.ended = true; S.running = false; document.exitPointerLock?.();
+  const lg = S.log, ar = LANG === 'ar';
+  const sig = lg.signal, look = GZ.firstLook;
+  const rows = [
+    [ar ? 'ريان يغوص تحت السطح' : 'Rayan slips under', fmt(0)],
+    [ar ? 'أول نظرة منك إلى قاع الحارة ٤' : 'You first look at lane 4', fmt(look) + (look != null && GZ.firstGlare > .3 ? (ar ? '  (والوهج يغطّيه)' : '  (the glare over him)') : '')],
+    [ar ? 'تنبيه الطفل عمر' : "Omar's alert", lg.omarAlert != null ? fmt(lg.omarAlert) : (ar ? 'لم يحدث' : 'did not happen')],
+    [ar ? 'صفّارتك وإشارتك' : 'Your whistle and signal', sig != null ? fmt(sig) : (ar ? 'لم تُطلق' : 'none')],
+    [ar ? 'انطلاق التصفية الرابعة فوقه' : 'Heat 4 dived in over him', lg.heat4Started != null ? (ar ? 'نعم' : 'yes') : (ar ? 'لا' : 'no')],
+  ];
+  let title, text, cls;
+  if (sig != null && sig <= 25) { title = ar ? 'لاحظته وأوقفت كل شيء' : 'You saw him and stopped everything'; text = ar ? 'لم يكن هناك رذاذ ولا صوت. لاحظت الحارة الفارغة على السطح والشكل الساكن في القاع، وتصرّفت فورًا.' : 'There was no splash and no sound. You noticed the empty lane and the still shape on the bottom, and acted at once.'; }
+  else if (sig != null && lg.heat4Started == null) { title = ar ? 'أوقفت البدء — لكن بعد تأخّر' : 'You stopped the start — after a delay'; text = ar ? 'كل عشر ثوانٍ من الانتظار هي عشر ثوانٍ إضافية تحت الماء. علامة واحدة تكفي للتصرّف: حارة فارغة، أو شكل ساكن، أو طفل يشير.' : 'Every 10 seconds of waiting is 10 more seconds underwater. One sign is enough to act on: an empty lane, a still shape, a child pointing.'; }
+  else { title = ar ? 'لم يُلاحَظ في الوقت' : 'Not noticed in time'; text = ar ? 'انطلق السباق التالي فوقه. بعد النهاية مباشرة يتّجه انتباه الجميع إلى النتائج والانطلاقة التالية؛ واصل المسح حتى يخرج آخر سبّاح.' : 'The next race started over him. Right after a finish everyone turns to the results and the next start; keep scanning until every swimmer is out.'; }
+  $('#endTitle').textContent = title; $('#endText').textContent = text;
+  $('#endTl').innerHTML = rows.map(([a, b]) => `<span>${a}</span><span class="t">${b}</span>`).join('');
+  $('#end').classList.remove('hide');
+  window.__aqEnd = { signal: sig, firstLook: look, heat4Started: lg.heat4Started != null, forced: !!forced };
+}
+$('#btnAgain').onclick = () => location.reload();
+
+/* =====================================================================
+   12. START, DEMO, LOOP
+   ===================================================================== */
+const DEMO = { on: false };
+function begin(demo) {
+  $('#menu').classList.add('hide'); startAudio();
+  if (demo) { DEMO.on = true; $('#brief').classList.add('hide'); go(); return; }
+  $('#brief').classList.remove('hide');
+}
+function go() { $('#brief').classList.add('hide'); S.running = true; S.phase = 'play'; $('#hint').classList.remove('hide'); if (!DEMO.on) canvas.requestPointerLock?.(); }
+$('#btnStart').onclick = () => begin(false);
+$('#btnDemo').onclick = () => begin(true);
+$('#btnBrief').onclick = go;
+// the demo (and tests): ?auto=good (stand up, notice, whistle at T+6) | late (whistle only at the forced cue) | none
+const AUTO = params.get('auto');
+function demoUpdate(dt) {
+  if (!(DEMO.on || AUTO)) return;
+  const mode = AUTO || 'good';
+  const lookAt = (x, y, z, rate = 3) => { const d = new V3(x, y, z).sub(camera.position); const yaw = Math.atan2(-d.x, -d.z), pitch = Math.atan2(d.y, Math.hypot(d.x, d.z)); let dy = yaw - P.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); P.yaw += dy * Math.min(1, dt * rate); P.pitch += (pitch - P.pitch) * Math.min(1, dt * rate); };
+  const tt = S.T0 == null ? null : S.t - S.T0;
+  if (S.t < 15) lookAt(-12, 0, -2);
+  else if (S.T0 == null) { const lead = S.heat3.reduce((a, s) => Math.max(a, s.x), -30); lookAt(Math.min(lead + 2, 24), 0, laneZ(3)); if (mode === 'good' && rayan.st === 'roll') P.mode = 'stand'; }
+  else if (mode === 'good') { lookAt(rayan.x, -1.8, rayan.z, 4); if (tt > 6) whistle(); }
+  else if (mode === 'late') { lookAt(POOL.x1 - 3, 0, laneZ(5)); if (S.log.forced != null && tt > 122) whistle(); }
+}
+const FREEZE = params.has('freeze');
+let started = false;
+function tick(dt, draw) {
+  if (S.running) S.t += dt;
+  U.time.value += dt;
+  if (S.running) {
+    for (const a of AT) if (!a.done) { if (a.t != null && S.t >= a.t) { a.done = true; a.fn(); } else if (a.T != null && S.T0 != null && S.t - S.T0 >= a.T) { a.done = true; a.fn(); } }
+    if (rayan.st !== 'wait' && rayan.st !== 'race' && S.T0 == null && rayan.st === 'touched' && !S.preT) { S.preT = true; }
+    // T-6 fires relative to the expected T0 (12 s after his touch)
+    if (rayan.st === 'touched' && !S.outCalled && rayan.t > 6) { S.outCalled = true; const a = AT.find(a => a.T === -6); if (a && !a.done) { a.done = true; a.fn(); } }
+  }
+  updateHeats(S.running ? dt : 0);
+  updateRipples();
+  demoUpdate(dt);
+  updatePlayer(S.running ? dt : 0);
+  if (S.running) updateGaze(dt);
+  if (crowd) crowd.update(dt, S.firstTouch && S.t - S.firstTouch < 8 ? .8 : .25);
+  if (AUDIO) AUDIO.setListener(camera.position, new V3(0, 0, -1).applyQuaternion(camera.quaternion), new V3(0, 1, 0).applyQuaternion(camera.quaternion));
+  if (S.running && !S.whistled && S.T0 != null && S.t - S.T0 > 170) endPhase1(true);
+  if (S.running && S.endAt && S.t >= S.endAt) endPhase1();
+  if (S.crowdShoutAt && S.t >= S.crowdShoutAt) { S.crowdShoutAt = 0; say('crowd', 'crowd_shout', 'alert'); }
+  if (!draw) return;
+  // refraction pass: what lies under the water, from your eye, clipped at the surface
+  renderer.shadowMap.needsUpdate = true;
+  water.visible = false; camera.layers.set(UNDER); renderer.clippingPlanes = clipUnder;
+  renderer.setRenderTarget(refrRT); renderer.setClearColor(0x0a2a35, 1); renderer.clear(); renderer.render(scene, camera);
+  renderer.setRenderTarget(null); renderer.clippingPlanes = []; camera.layers.set(0); water.visible = true;
+  renderer.setClearColor(0x000000, 1);
+  renderer.render(scene, camera);
+}
+function resize() {
+  const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+  const pr = renderer.getPixelRatio(); refrRT.setSize(Math.max(1, Math.floor(w * pr * .6)), Math.max(1, Math.floor(h * pr * .6)));
+}
+addEventListener('resize', resize); resize();
+// the hall's reflection: capture once with the water hidden
+water.visible = false; cubeCam.update(renderer, scene); water.visible = true;
+const pmrem = new THREE.PMREMGenerator(renderer); scene.environment = pmrem.fromCubemap(cubeRT.texture).texture; scene.environmentIntensity = .45;
+const clock = new THREE.Clock();
+function loop() { requestAnimationFrame(loop); tick(FREEZE ? 0 : Math.min(clock.getDelta(), .05), true); }
+loop();
+if (params.has('play') || AUTO) { $('#menu').classList.add('hide'); startAudio(); DEMO.on = !!AUTO; go(); }
+window.__aq = { S, P, camera, scene, rayan, GZ, O, glareCover, tick: (n, dt = 1 / 30) => { for (let i = 0; i < n; i++) tick(dt, false); }, render: () => tick(0, true), whistle };
+document.body.dataset.state = 'ready';
+</script>
+</body>
+</html>

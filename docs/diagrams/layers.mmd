@@ -1,0 +1,20 @@
+%% The parts inside one demo page (SAF-01, AGR-03; AQ-01 has the same layers plus two modules). Simplified.
+flowchart TB
+  MAIN["Main loop - loads everything, then updates and draws every frame"]
+  UI["UI layer - menu, objective, chat, answer buttons, review screen"]
+  SCENE["3D scene - camera, lights, world, objects, characters, fire and water"]
+  INT["Interaction - keyboard and mouse, what you look at, your hands"]
+  SCN["Scenario manager - the story: lines, questions, decisions, mistakes, endings"]
+  DATA["Assets and data - 3D models, textures, voice files, all texts"]
+  MAIN --> UI
+  MAIN --> SCENE
+  MAIN --> INT
+  MAIN --> SCN
+  DATA --> SCENE
+  DATA --> SCN
+  INT -->|"you did something"| SCN
+  SCN -->|"show a line or a question"| UI
+  UI -->|"you chose an answer"| SCN
+  SCN -->|"move characters, change the fire"| SCENE
+  classDef main fill:#e8f0fe,stroke:#4b6fd6
+  class SCN main

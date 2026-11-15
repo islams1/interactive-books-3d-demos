@@ -1,0 +1,36 @@
+%% Actual scenario lifecycle of AGR-03 (fp-extinguisher/agr03.html: useE, checkStart, talkHala, askAction, judge,
+%% endingFor, finish). Branching is written as JavaScript callbacks.
+flowchart TD
+  A0["Intro: walk up to Eng. Hala, opening lines"] --> V["Visit in any order - press E on what you look at"]
+  V --> C1["Leaves"]
+  V --> C2["Under a leaf - crouch first"]
+  V --> C3["Soil: finger at 3 cm, optional deeper touch"]
+  V --> C4["Pot: lift a leaf, then lift the pot with both hands"]
+  V --> C5["Heat"]
+  V --> C6["Ask Mr. Fathy - kindly or blaming"]
+  C1 --> NB["Each check: +1 game minute, a note written in the 3D notebook, evidence stored"]
+  C2 --> NB
+  C3 --> NB
+  C4 --> NB
+  C5 --> NB
+  C6 --> NB
+  NB --> V
+  V -->|"press E on Eng. Hala"| H{"Sent back to the soil and not re-checked yet?"}
+  H -->|"yes - Hala: check the soil first"| V
+  H -->|"no"| GU["Your guess: roots, thirst, heat, insects if seen"]
+  GU --> UN["What you are not sure about"]
+  UN --> ACT{"Recommend A to E"}
+  ACT -->|"D spray - refused at once"| D2{"Second D?"}
+  D2 -->|"no"| ACT
+  D2 -->|"yes"| E3["Ending E3: more water, the plant gets worse"]
+  ACT -->|"A, B, C or E"| RS{"Reason - picked from the evidence you found"}
+  RS -->|"no reason"| BK["Hala: what did you see? - back to the visit"]
+  BK --> V
+  RS -->|"A water again"| A2{"Second A, or A again after re-checking the soil?"}
+  A2 -->|"no - Hala sends you back to the soil"| V
+  A2 -->|"yes"| E3
+  RS -->|"C shade or E cut leaves"| TRY["Hala answers - try again"]
+  TRY --> ACT
+  RS -->|"B stop extra water, empty the saucer"| EF{"Leaves, insects, soil, pot and Mr. Fathy all recorded, and no earlier wrong recommendation?"}
+  EF -->|"yes"| E1["Ending E1 + debrief"]
+  EF -->|"no"| E2["Ending E2 + debrief listing what was missed"]

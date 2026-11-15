@@ -1,0 +1,11 @@
+%% PROPOSED future architecture - NOT the current implementation. Simplified. Full version: detailed/proposed-platform-architecture.mmd
+flowchart LR
+  A["Brief"] --> B["AI writes the scenario as a data file"]
+  B --> C["Automatic checks"]
+  C --> D{"Human approves"}
+  D --> E["One shared player for all books"]
+  E --> F["Shared parts: characters, hands, interactions, effects"]
+  E --> G["Scoring engine"]
+  G --> H["Saved progress and results"]
+  classDef main fill:#e8f0fe,stroke:#4b6fd6
+  class E main

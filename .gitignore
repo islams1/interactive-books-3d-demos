@@ -1,0 +1,37 @@
+# Whitelist: ignore everything, then allow only what the repository needs.
+# Never commit: .env, .vercel/, deploy/, personal scans (assets/fullbody, assets/splat, assets/avatar, *.ply),
+# third-party research clones, personal notes.
+/*
+!/.gitignore
+!/README.md
+!/INTERACTIVE_3D_MACHINE_SPEC.md
+!/docs/
+!/pumpjack/
+!/pumpjack-drill/
+!/pumpjack-field/
+!/fp-extinguisher/
+!/submission/
+
+# --- fp-extinguisher: games, modules, tools; assets only what the demos need ---
+/fp-extinguisher/backups/
+/fp-extinguisher/skin_options.png
+/fp-extinguisher/assets/fullbody/
+/fp-extinguisher/assets/splat/
+/fp-extinguisher/assets/avatar/
+/fp-extinguisher/assets/meta/
+/fp-extinguisher/assets/audio/murtada.mp3
+/fp-extinguisher/assets/renderpeople/*/*_normal_orig.jpg
+
+# --- submission: keep only the offline scripts ---
+/submission/*
+!/submission/ai-pipeline/
+/submission/ai-pipeline/*
+!/submission/ai-pipeline/scripts/
+
+# --- safety nets ---
+.env
+.env.*
+.vercel/
+*.ply
+__pycache__/
+*.pyc

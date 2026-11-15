@@ -1,0 +1,19 @@
+%% AGR-03 The Wilting Tomato, simplified. Full version: detailed/agr03-scenario-flow.mmd
+flowchart TD
+  A["Meet Eng. Hala"] --> B["Check the plant: leaves, under a leaf, soil, pot, heat, ask the worker"]
+  B --> N["Each check: 1 game minute + a note in the notebook"]
+  N --> B
+  B --> R{"Recommend a treatment, with a reason"}
+  R -->|"no evidence, or water again"| B
+  R -->|"spray, shade or cut leaves"| T["Hala refuses or answers - try again"]
+  T --> R
+  R -->|"water again or spray, a second time"| E3["Ending 3: plant gets worse"]
+  R -->|"stop watering, empty the saucer"| Q{"All key checks done, no wrong tries?"}
+  Q -->|"yes"| E1["Ending 1"]
+  Q -->|"no"| E2["Ending 2"]
+  classDef good fill:#e6f4ea,stroke:#2f9e5b
+  classDef mid fill:#fff6e0,stroke:#d9822b
+  classDef bad fill:#fdecea,stroke:#cf4b4b
+  class E1 good
+  class E2 mid
+  class E3 bad

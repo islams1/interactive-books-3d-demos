@@ -1,0 +1,31 @@
+%% Actual scenario lifecycle of SAF-01 (fp-extinguisher/saf01.html: startFlow, step1, alarm, pickExt, afterReason,
+%% takeExt, adverse, SAF.onFireOut, SAF.onEmpty, finish, showEnding). Branching is written as JavaScript callbacks.
+flowchart TD
+  S0["Menu - Start, or ?step=2, or ?ending=N"] --> S1["Mr. Fathy opening line"]
+  S1 --> Q1{"Step 1 question q_s1"}
+  Q1 -->|"o1_both - good"| AL["alarm: Fathy leaves, Mahmoud fetches Eng. Karim, Karim arrives"]
+  Q1 -->|"o1_fathy - mistake alarm_late"| CALL["Mahmoud asks: shall I call him?"]
+  CALL --> AL
+  Q1 -->|"o1_grab"| SURE{"Mahmoud: are you sure?"}
+  SURE -->|"fix alarm - mistake grab_first"| AL
+  SURE -->|"no time - mistake grab_insist"| AL
+  AL --> S2["Step 2: look with E at board, straw, diesel - info cards"]
+  S2 --> PICK["Take an extinguisher from the rack - mistake no_look if the board was not inspected"]
+  PICK --> PICK2{"Type and reason"}
+  PICK2 -->|"CO2"| CO2["Karim corrects - mistake co2_first"]
+  CO2 --> PICK
+  PICK2 -->|"water"| WQ{"Mahmoud: is it electrical?"}
+  WQ -->|"change - mistake water_first"| PICK
+  WQ -->|"insist"| CINE["Cinematic: water on the live board, flame jumps to the straw, evacuation"]
+  CINE --> E3["Ending 3 + debrief, restart at step 2"]
+  PICK2 -->|"powder, wrong reason - mistake reason"| S3["Step 3: PASS - pin, hose, squeeze, sweep; aim and draught measured"]
+  PICK2 -->|"powder, electrical reason - good"| S3
+  S3 -->|"empty for 2.5 s - mistake empty"| KF["Karim finishes the fire"]
+  S3 -->|"Engine event fire_out"| CHK["onFireOut: mistakes no_sweep, aim, downwind if measured"]
+  KF --> CHK
+  CHK --> REP{"Report to Karim"}
+  REP -->|"just: it is out - mistake report_short"| FIN{"finish: any mistakes?"}
+  REP -->|"full report"| R3["What burned, which extinguisher, likely cause - wrong answers add report mistakes"]
+  R3 --> FIN
+  FIN -->|"none"| E1["Ending 1: Karim removes the extra plugs + debrief"]
+  FIN -->|"one or more"| E2["Ending 2 + debrief listing the mistakes"]

@@ -1,0 +1,46 @@
+%% PROPOSED future architecture - NOT the current implementation.
+flowchart TB
+  subgraph AUTH["Authoring and build - offline, versioned in git"]
+    P1["Brief or prompt"] --> P2["AI writer produces Situation JSON: scenes, actions, transitions, endings, 3D cues"]
+    P2 --> P3["Automatic checks: schema, path explorer, safety rules"]
+    P3 --> P4["Stage build: environment kit, cast, voices generated from the JSON"]
+    P4 --> P5["Automated QA: autopilot on every path, screenshots, frame-time budget"]
+    P5 --> P6{"Human gate: visual, content and licence review"}
+  end
+  subgraph ASSET["Central asset service"]
+    AR["Asset registry: source and licence per file"]
+    AP["glTF with KTX2 and meshopt, clips as GLB, voice packs"]
+  end
+  subgraph PLAYER["Shared player - one codebase for every book"]
+    SE["Scenario Engine - data-driven runner"]
+    SM["3D Scene Manager and Environment Manager"]
+    LDR["Asset Loader with progress and caching"]
+    CHR["Character runtime: retarget, face, lip sync, look-at"]
+    CAM["Camera and Character Controller - first person, touch"]
+    INT["Interaction Manager and kits: inspect, extinguisher PASS, notebook, lift"]
+    FX["FX kits: fire, smoke, water and glare optics"]
+    UI["Shared UI components: transcript, choices, HUD, debrief"]
+    EV["Event System"]
+    ST["State Manager with save and resume"]
+  end
+  subgraph SERVICES["Platform services"]
+    DE["Deterministic decision engine and Assessment Manager"]
+    PT["Progress Tracking - attempts API or xAPI"]
+    BOOKS["Interactive Books catalogue"]
+  end
+  P6 -->|"publish stage pack"| AR
+  AR --> AP
+  AP --> LDR
+  BOOKS -->|"embed scenario by id"| SE
+  SE --> SM
+  SE --> CHR
+  SE --> INT
+  SE --> UI
+  SM --> LDR
+  CAM --> INT
+  INT --> EV
+  FX --> EV
+  EV --> DE
+  DE --> SE
+  EV --> PT
+  ST --> PT

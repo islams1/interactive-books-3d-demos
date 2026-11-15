@@ -1,0 +1,49 @@
+%% High-level architecture of the CURRENT implementation (verified from the code, 2026-11-15).
+%% No backend, no database, no runtime AI. Each game is one static HTML file plus static assets.
+flowchart LR
+  subgraph DEV["Developer machine - build time"]
+    BRIEF["Client situation briefs (PDF)"]
+    CC["Claude Code - dev-time code authoring"]
+    TTS["gen_lines.py - ElevenLabs API eleven_v3 with timestamps"]
+    BL["Blender 5.2 headless - rp_to_web.py, bake_ao.py"]
+    SOL["Grip solver - CMA-ES in Node"]
+    QA["Headless Chrome - shoot.ps1, perf.mjs, autopilot URLs"]
+    SYNC["sync_deploy.py"]
+  end
+  subgraph SRC["Source folder C:/book - no git repository"]
+    GAMES["fp-extinguisher/saf01.html, agr03.html, aq01.html, index.html"]
+    AQMOD["fp-extinguisher/aq01/people.js, audio.js"]
+    ASSETS["fp-extinguisher/assets - anim, audio, polyhaven, renderpeople, Rocketbox bodies"]
+    GRIP["fp-extinguisher/grip/tripod.json"]
+    PJ["pumpjack/, pumpjack-drill/, pumpjack-field/ index.html"]
+  end
+  subgraph HOST["Vercel static hosting"]
+    D1["SAF-01 project - deploy/saf01"]
+    D2["AGR-03 project - deploy/agr03"]
+  end
+  subgraph BROWSER["Learner browser - runtime"]
+    PAGE["Game page - one inline ES module; AQ-01 also imports people.js and audio.js"]
+    THREE["three.js 0.170.0 from cdn.jsdelivr.net"]
+    FONTS["Google Fonts"]
+    WEBAPI["WebGL, Web Audio, Pointer Lock, fetch, localStorage"]
+  end
+  BRIEF --> CC
+  CC --> GAMES
+  CC --> AQMOD
+  CC --> PJ
+  GAMES -->|"SAF-01 and AGR-03 only: TXT table and say items parsed by regex"| TTS
+  TTS --> ASSETS
+  BL --> ASSETS
+  SOL --> GRIP
+  GAMES --> QA
+  QA -->|"fix rounds"| CC
+  GAMES -->|"SAF-01 and AGR-03 only"| SYNC
+  ASSETS --> SYNC
+  GRIP --> SYNC
+  SYNC --> D1
+  SYNC --> D2
+  D1 --> PAGE
+  D2 --> PAGE
+  THREE --> PAGE
+  FONTS --> PAGE
+  PAGE --> WEBAPI

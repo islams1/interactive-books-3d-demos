@@ -1,0 +1,242 @@
+{
+ "hala_open": {
+  "who": "hala",
+  "dur": 14.24,
+  "voice": "EXAVITQu4vr4xnSDxMaL",
+  "model": "eleven_v3"
+ },
+ "fathy_ans": {
+  "who": "fathy",
+  "dur": 9.28,
+  "voice": "JBFqnCBsd6RMkjVDRZzb",
+  "model": "eleven_v3"
+ },
+ "fathy_hurt": {
+  "who": "fathy",
+  "dur": 10.56,
+  "voice": "JBFqnCBsd6RMkjVDRZzb",
+  "model": "eleven_v3"
+ },
+ "h_A": {
+  "who": "hala",
+  "dur": 3.84,
+  "voice": "EXAVITQu4vr4xnSDxMaL",
+  "model": "eleven_v3"
+ },
+ "h_B": {
+  "who": "hala",
+  "dur": 2.72,
+  "voice": "EXAVITQu4vr4xnSDxMaL",
+  "model": "eleven_v3"
+ },
+ "h_B2": {
+  "who": "hala",
+  "dur": 0.56,
+  "voice": "EXAVITQu4vr4xnSDxMaL",
+  "model": "eleven_v3"
+ },
+ "h_C": {
+  "who": "hala",
+  "dur": 4.0,
+  "voice": "EXAVITQu4vr4xnSDxMaL",
+  "model": "eleven_v3"
+ },
+ "h_D": {
+  "who": "hala",
+  "dur": 2.4,
+  "voice": "EXAVITQu4vr4xnSDxMaL",
+  "model": "eleven_v3"
+ },
+ "h_E": {
+  "who": "hala",
+  "dur": 3.28,
+  "voice": "EXAVITQu4vr4xnSDxMaL",
+  "model": "eleven_v3"
+ },
+ "h_ask": {
+  "who": "hala",
+  "dur": 2.08,
+  "voice": "EXAVITQu4vr4xnSDxMaL",
+  "model": "eleven_v3"
+ },
+ "h_restart": {
+  "who": "hala",
+  "dur": 6.0,
+  "voice": "EXAVITQu4vr4xnSDxMaL",
+  "model": "eleven_v3"
+ },
+ "h_soilfirst": {
+  "who": "hala",
+  "dur": 4.48,
+  "voice": "EXAVITQu4vr4xnSDxMaL",
+  "model": "eleven_v3"
+ },
+ "h_tryagain": {
+  "who": "hala",
+  "dur": 3.52,
+  "voice": "EXAVITQu4vr4xnSDxMaL",
+  "model": "eleven_v3"
+ },
+ "hala_go": {
+  "who": "hala",
+  "dur": 1.6,
+  "voice": "EXAVITQu4vr4xnSDxMaL",
+  "model": "eleven_v3"
+ },
+ "hala_noblame": {
+  "who": "hala",
+  "dur": 2.4,
+  "voice": "EXAVITQu4vr4xnSDxMaL",
+  "model": "eleven_v3"
+ },
+ "f_kind": {
+  "who": "you",
+  "dur": 3.44,
+  "voice": "TX3LPaxmHKxFdv7VOQHJ",
+  "model": "eleven_v3"
+ },
+ "a_A": {
+  "who": "you",
+  "dur": 1.6,
+  "voice": "TX3LPaxmHKxFdv7VOQHJ",
+  "model": "eleven_v3"
+ },
+ "a_B": {
+  "who": "you",
+  "dur": 12.96,
+  "voice": "TX3LPaxmHKxFdv7VOQHJ",
+  "model": "eleven_v3"
+ },
+ "a_B2": {
+  "who": "you",
+  "dur": 9.68,
+  "voice": "TX3LPaxmHKxFdv7VOQHJ",
+  "model": "eleven_v3"
+ },
+ "a_C": {
+  "who": "you",
+  "dur": 1.76,
+  "voice": "TX3LPaxmHKxFdv7VOQHJ",
+  "model": "eleven_v3"
+ },
+ "a_D": {
+  "who": "you",
+  "dur": 1.44,
+  "voice": "TX3LPaxmHKxFdv7VOQHJ",
+  "model": "eleven_v3"
+ },
+ "a_E": {
+  "who": "you",
+  "dur": 1.92,
+  "voice": "TX3LPaxmHKxFdv7VOQHJ",
+  "model": "eleven_v3"
+ },
+ "f_blame": {
+  "who": "you",
+  "dur": 1.84,
+  "voice": "TX3LPaxmHKxFdv7VOQHJ",
+  "model": "eleven_v3"
+ },
+ "r_bugs": {
+  "who": "you",
+  "dur": 2.88,
+  "voice": "TX3LPaxmHKxFdv7VOQHJ",
+  "model": "eleven_v3"
+ },
+ "r_damp": {
+  "who": "you",
+  "dur": 3.12,
+  "voice": "TX3LPaxmHKxFdv7VOQHJ",
+  "model": "eleven_v3"
+ },
+ "r_damptop": {
+  "who": "you",
+  "dur": 3.52,
+  "voice": "TX3LPaxmHKxFdv7VOQHJ",
+  "model": "eleven_v3"
+ },
+ "r_drain": {
+  "who": "you",
+  "dur": 3.52,
+  "voice": "TX3LPaxmHKxFdv7VOQHJ",
+  "model": "eleven_v3"
+ },
+ "r_droop": {
+  "who": "you",
+  "dur": 0.96,
+  "voice": "TX3LPaxmHKxFdv7VOQHJ",
+  "model": "eleven_v3"
+ },
+ "r_fathy": {
+  "who": "you",
+  "dur": 3.84,
+  "voice": "TX3LPaxmHKxFdv7VOQHJ",
+  "model": "eleven_v3"
+ },
+ "r_heat": {
+  "who": "you",
+  "dur": 1.28,
+  "voice": "TX3LPaxmHKxFdv7VOQHJ",
+  "model": "eleven_v3"
+ },
+ "r_none": {
+  "who": "you",
+  "dur": 1.28,
+  "voice": "TX3LPaxmHKxFdv7VOQHJ",
+  "model": "eleven_v3"
+ },
+ "r_saucer": {
+  "who": "you",
+  "dur": 1.36,
+  "voice": "TX3LPaxmHKxFdv7VOQHJ",
+  "model": "eleven_v3"
+ },
+ "r_yellow": {
+  "who": "you",
+  "dur": 3.04,
+  "voice": "TX3LPaxmHKxFdv7VOQHJ",
+  "model": "eleven_v3"
+ },
+ "y_g_bugs": {
+  "who": "you",
+  "dur": 2.24,
+  "voice": "TX3LPaxmHKxFdv7VOQHJ",
+  "model": "eleven_v3"
+ },
+ "y_g_heat": {
+  "who": "you",
+  "dur": 2.32,
+  "voice": "TX3LPaxmHKxFdv7VOQHJ",
+  "model": "eleven_v3"
+ },
+ "y_g_roots": {
+  "who": "you",
+  "dur": 6.56,
+  "voice": "TX3LPaxmHKxFdv7VOQHJ",
+  "model": "eleven_v3"
+ },
+ "y_g_thirst": {
+  "who": "you",
+  "dur": 2.48,
+  "voice": "TX3LPaxmHKxFdv7VOQHJ",
+  "model": "eleven_v3"
+ },
+ "y_u_bugs": {
+  "who": "you",
+  "dur": 3.2,
+  "voice": "TX3LPaxmHKxFdv7VOQHJ",
+  "model": "eleven_v3"
+ },
+ "y_u_heat": {
+  "who": "you",
+  "dur": 3.84,
+  "voice": "TX3LPaxmHKxFdv7VOQHJ",
+  "model": "eleven_v3"
+ },
+ "narr_book": {
+  "who": "book",
+  "dur": 12.8,
+  "voice": "Xb7hH8MSUJpSbSDYk0k2",
+  "model": "eleven_v3"
+ }
+}

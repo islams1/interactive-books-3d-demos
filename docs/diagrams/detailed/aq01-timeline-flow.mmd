@@ -1,0 +1,25 @@
+%% Actual session timeline of AQ-01 phase 1 (fp-extinguisher/aq01.html: at, atT, whistle, endPhase1).
+%% at() = session time from Start; atT() = time relative to T0, the moment Rayan slips under (12 s after he touches the wall).
+flowchart TD
+  S0["Start - you sit in the lifeguard chair"] --> T1["1.5 s radio greeting - 9 s whistles - 12.5 s take your marks"]
+  T1 --> T2["15 s heat 3 starts, backstroke"]
+  T2 --> T3["21 s timing official asks for help - 24 s second lifeguard Fahad leaves his chair - 33 s Fahad's line"]
+  T3 --> T4["Rayan touches the wall, drifts, rolls face down - T-6 referee: heat three, out"]
+  T4 --> T0["T0: Rayan slips under and sinks to the bottom"]
+  T0 --> T5["T+20 swimmer Omar raises the alarm - T+23.5 referee sends him behind the block"]
+  T5 --> T6["T+40 heat 4 on the blocks - T+45 take your marks - T+60 heat 4 dives in over him"]
+  T6 --> T7["T+100 heat 5 called - T+120 a heat-5 swimmer screams and points"]
+  T7 --> T8["T+170 the session ends on its own"]
+  W{"You press F - whistle"}
+  T1 -.-> W
+  T5 -.-> W
+  T6 -.-> W
+  T7 -.-> W
+  W -->|"before T0"| FA["False alarm - counted, play continues"]
+  W -->|"after T0"| STOP["Later events stop, the phase ends 3.2 s later"]
+  STOP --> R{"Time since T0"}
+  R -->|"25 s or less"| O1["You saw him and stopped everything"]
+  R -->|"before heat 4 dived"| O2["You stopped the start, after a delay"]
+  R -->|"later"| O3["Not noticed in time"]
+  T8 --> O3
+  G["Glare: the reflection of a bright window band hides the bottom of lanes 3-5 from the seat; standing on the chair clears it"] -.-> W

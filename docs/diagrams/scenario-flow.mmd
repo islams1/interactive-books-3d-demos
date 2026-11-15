@@ -1,0 +1,21 @@
+%% SAF-01 The Wrong Extinguisher, simplified. Full version with every mistake: detailed/scenario-flow.mmd
+flowchart TD
+  A["Fire starts"] --> B{"Warn people first?"}
+  B -->|"yes"| C["Supervisor arrives"]
+  B -->|"no - mistake"| C
+  C --> D["Look at the fire, pick an extinguisher, say why"]
+  D -->|"CO2 - mistake"| D
+  D -->|"water"| W{"Is it electrical?"}
+  W -->|"change - mistake"| D
+  W -->|"insist"| E3["Ending 3: fire spreads"]
+  D -->|"powder"| P["Use it: pin, aim, squeeze, sweep"]
+  P --> R["Report to the supervisor"]
+  R --> F{"Any mistakes?"}
+  F -->|"no"| E1["Ending 1"]
+  F -->|"yes"| E2["Ending 2"]
+  classDef good fill:#e6f4ea,stroke:#2f9e5b
+  classDef mid fill:#fff6e0,stroke:#d9822b
+  classDef bad fill:#fdecea,stroke:#cf4b4b
+  class E1 good
+  class E2 mid
+  class E3 bad

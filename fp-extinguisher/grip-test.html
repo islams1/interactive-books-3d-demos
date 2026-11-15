@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pen Grip Test</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #d6d6d4; }
+  canvas { display: block; }
+  #info { position: fixed; left: 10px; top: 8px; max-width: calc(100vw - 36px); font: 12px/1.4 ui-monospace, Consolas, monospace; color: #1d1d1d;
+    background: rgba(255, 255, 255, .78); padding: 6px 9px; border-radius: 4px; white-space: pre-wrap; }
+</style>
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+}}
+</script>
+</head>
+<body>
+<div id="info">loading…</div>
+<script type="module">
+/* Pen-grip test bench for AGR-03: the Rocketbox Male_Adult_01 right hand (the same FBX, weights, triangle filter and
+   bone driving as agr03.html loadHand / driveHand), posed from grip/tripod.json, holding the pen on a sheet of paper.
+   URL: ?view=eye|side|top|front|ulnar  ?eye=near|left (view=eye: the writer's eye at (-0.09, 0.31, 0.20) m from the tip, or further
+   left at (-0.16, 0.36, 0.22) m)  ?alt=55 (pen to paper, deg)  ?variant=up|down  ?az= (pen azimuth on the page, deg from
+   'toward the writer' to the right)  ?ext=20 ?dev=10 (wrist extension / ulnar deviation, deg, forearm only)  ?markers=1
+   ?fov= ?dist=  ?json=grip/tripod.json */
+import * as THREE from 'three';
+import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const params = new URLSearchParams(location.search);
+const num = (k, d) => params.has(k) ? +params.get(k) : d;
+const V3 = THREE.Vector3, Q4 = THREE.Quaternion, D = Math.PI / 180;
+const basisQ = (X, Y, Z) => new Q4().setFromRotationMatrix(new THREE.Matrix4().makeBasis(X, Y, Z));
+const perp = (v, axis) => v.clone().addScaledVector(axis, -v.dot(axis)).normalize();
+const S_CM = new V3(.01, .01, .01);
+const info = document.getElementById('info');
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(2, devicePixelRatio)); renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0xd6d6d4);
+const pmrem = new THREE.PMREMGenerator(renderer); scene.environment = pmrem.fromScene(new RoomEnvironment(), .04).texture; scene.environmentIntensity = .55;
+const camera = new THREE.PerspectiveCamera(num('fov', 30), innerWidth / innerHeight, .005, 5);
+// neutral studio light: a soft key from above-left-front (the writer's lamp), a fill, a rim
+const key = new THREE.DirectionalLight(0xffffff, 2.2); key.position.set(-.35, .9, .45); key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048); key.shadow.camera.left = key.shadow.camera.bottom = -.25; key.shadow.camera.right = key.shadow.camera.top = .25;
+key.shadow.camera.near = .1; key.shadow.camera.far = 3; key.shadow.bias = -.0004; key.shadow.normalBias = .002; key.shadow.radius = 4;
+scene.add(key, key.target);
+const fill = new THREE.DirectionalLight(0xfff4ea, .55); fill.position.set(.6, .4, .3); scene.add(fill);
+const rim = new THREE.DirectionalLight(0xeaf2ff, .5); rim.position.set(.1, .3, -.8); scene.add(rim);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8478, .35));
+
+// ---- the paper: the world frame (y up, the tip at the origin, the writer at +z) ----
+{
+  const c = document.createElement('canvas'); c.width = 2048; c.height = 1536; const g = c.getContext('2d');
+  g.fillStyle = '#fbfaf6'; g.fillRect(0, 0, c.width, c.height);
+  g.strokeStyle = 'rgba(70,120,190,.35)'; g.lineWidth = 2;
+  for (let y = 40; y < c.height; y += 46) { g.beginPath(); g.moveTo(0, y); g.lineTo(c.width, y); g.stroke(); }   // ~9 mm ruling at 0.4 m / 2048 px
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+  const paper = new THREE.Mesh(new THREE.PlaneGeometry(.4, .3), new THREE.MeshStandardMaterial({ map: tex, roughness: .92 }));
+  paper.rotation.x = -Math.PI / 2; paper.position.set(-.02, -.0002, .02); paper.receiveShadow = true; scene.add(paper);
+  const desk = new THREE.Mesh(new THREE.PlaneGeometry(3, 3), new THREE.MeshStandardMaterial({ color: 0x9c8f7c, roughness: .8 }));
+  desk.rotation.x = -Math.PI / 2; desk.position.y = -.0015; desk.receiveShadow = true; scene.add(desk);
+}
+
+async function main() {
+  const G = await (await fetch(params.get('json') || 'grip/tripod.json', { cache: 'no-store' })).json();
+  const variant = params.get('variant'), pose = variant && G.variants && G.variants[variant] ? G.variants[variant] : G;
+  // ---- the hand: agr03.html loadHand(), right side shown ----
+  const quietTGA = new THREE.LoadingManager(); quietTGA.setURLModifier(u => /\.(tga|png|jpg)$/i.test(u) && !u.includes('/assets/') ? 'data:,' : u);
+  const fbx = await new FBXLoader(quietTGA).loadAsync('assets/Male_Adult_01/Male_Adult_01.fbx');
+  fbx.updateMatrixWorld(true);
+  let mesh = null; fbx.traverse(o => { if (o.isSkinnedMesh && !mesh) mesh = o; });
+  fbx.traverse(o => { if (o.isMesh && o !== mesh) o.visible = false; });
+  const bones = mesh.skeleton.bones, bi = n => bones.findIndex(b => b.name === n);
+  const bindW = i => mesh.bindMatrix.clone().multiply(mesh.skeleton.boneInverses[i].clone().invert());
+  const posOf = i => new V3().setFromMatrixPosition(bindW(i)).multiplyScalar(.01);
+  const qOf = i => { const pp = new V3(), q = new Q4(), sc = new V3(); bindW(i).decompose(pp, q, sc); return q; };
+  const driven = new Set(), armSet = new Set(), SD = {};
+  for (const [key, side] of [['R', 1], ['L', -1]]) {
+    const n = x => `Bip01_${key}_${x}`;
+    const iU = bi(n('UpperArm')), iF = bi(n('Forearm')), iH = bi(n('Hand'));
+    const digits = [0, 1, 2, 3, 4].map(d => [n('Finger' + d), n('Finger' + d + '1'), n('Finger' + d + '2')].map(bi));
+    [iU, iF, iH, ...digits.flat()].forEach(i => driven.add(i));
+    [iF, iH, ...digits.flat()].forEach(i => armSet.add(i));
+    const pU = posOf(iU), pF = posOf(iF), pH = posOf(iH);
+    const f = posOf(digits[2][0]).sub(pH).normalize(), thumbward = posOf(digits[1][0]).sub(posOf(digits[4][0])).normalize();
+    const Z = f.clone().negate(), X = perp(side > 0 ? thumbward.clone().negate() : thumbward.clone(), Z), Y = new V3().crossVectors(Z, X).normalize();
+    const frameH = basisQ(X, Y, Z);
+    const dF = pH.clone().sub(pF).normalize(), Xf = perp(X, dF), Zf = dF.clone().negate(), Yf = new V3().crossVectors(Zf, Xf);
+    const dU = pF.clone().sub(pU).normalize(), Xu = perp(Xf, dU), Zu = dU.clone().negate(), Yu = new V3().crossVectors(Zu, Xu);
+    const off = (frame, i) => frame.clone().invert().multiply(qOf(i));
+    SD[key] = { side, iU, iF, iH, digits, upper: bones[iU], fore: bones[iF], hand: bones[iH], offH: off(frameH, iH), offF: off(basisQ(Xf, Yf, Zf), iF), offU: off(basisQ(Xu, Yu, Zu), iU), L1: pU.distanceTo(pF), L2: pF.distanceTo(pH) };
+    for (const b of [bones[iU], bones[iF], bones[iH]]) { b.matrixWorldAutoUpdate = false; b.matrixAutoUpdate = false; }
+  }
+  const sd = SD.R;
+  const g = mesh.geometry, si = g.attributes.skinIndex, sw = g.attributes.skinWeight, nV = g.attributes.position.count;
+  const mats = [].concat(mesh.material), bodyMat = mats.findIndex(m => /body/i.test(m.name));
+  const armW = new Float32Array(nV), dom = new Int32Array(nV);
+  for (let v = 0; v < nV; v++) {
+    let a = 0, d = 0; const w = [sw.getX(v), sw.getY(v), sw.getZ(v), sw.getW(v)], ix = [si.getX(v), si.getY(v), si.getZ(v), si.getW(v)];
+    for (let k = 0; k < 4; k++) { if (armSet.has(ix[k])) a += w[k]; if (driven.has(ix[k])) d += w[k]; else w[k] = 0; }
+    armW[v] = a; if (d > 0) sw.setXYZW(v, w[0] / d, w[1] / d, w[2] / d, w[3] / d);
+    let bw = -1; for (let k = 0; k < 4; k++) if (w[k] > bw) { bw = w[k]; dom[v] = ix[k]; }
+  }
+  sw.needsUpdate = true;
+  const rightSet = new Set([sd.iU, sd.iF, sd.iH, ...sd.digits.flat()]);
+  const triMat = t => { for (const gr of g.groups) if (t * 3 >= gr.start && t * 3 < gr.start + gr.count) return gr.materialIndex; return 0; };
+  const keep = [], nT = nV / 3;
+  for (let t = 0; t < nT; t++) {
+    if (g.groups.length && bodyMat >= 0 && triMat(t) !== bodyMat) continue;
+    const a = t * 3, b = a + 1, c = a + 2;
+    if (armW[a] > .35 && armW[b] > .35 && armW[c] > .35 && rightSet.has(dom[a]) && rightSet.has(dom[b]) && rightSet.has(dom[c])) keep.push(a, b, c);
+  }
+  g.setIndex(keep); g.clearGroups();
+  const tl = new THREE.TextureLoader();
+  const ld = async (u, srgb) => { const t = await tl.loadAsync(u); t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace; t.anisotropy = 4; return t; };
+  const [cm, nm] = await Promise.all([ld('assets/Male_Adult_01/m002_body_color_2k.jpg', true), ld('assets/Male_Adult_01/m002_body_normal_1k.jpg', false)]);
+  mesh.material = new THREE.MeshPhysicalMaterial({ map: cm, normalMap: nm, roughness: .55, normalScale: new THREE.Vector2(1.3, 1.3), sheen: .3, sheenRoughness: .45,
+    sheenColor: new THREE.Color(0xff8e70), emissive: 0x5a1a0c, emissiveMap: cm, emissiveIntensity: .12, specularIntensity: .55 });
+  mesh.frustumCulled = false; mesh.castShadow = true; mesh.receiveShadow = true;
+  scene.add(fbx);
+
+  // ---- the grip: absolute local quaternions of the 15 finger bones ----
+  if (!params.has('rest')) for (const [name, q] of Object.entries(pose.bones)) { const i = bi(name); if (i >= 0) bones[i].quaternion.set(q[0], q[1], q[2], q[3]); }
+  // the hand is placed by the MAIN grip (a stroke variant moves only the fingers and the pen inside the same hand placement)
+  const pen0 = G.pen, T = new V3(...pen0.tip), u = new V3(...pen0.dir).normalize(), Rr = new V3(...G.ulnarRest);
+  const pen = pose.pen;
+  // ---- the paper normal in the hand frame: the solver's resting roll for this altitude if it has one, else the plane through the
+  //      tip and the ulnar rest point with the pen at altitude alt (of the two such planes, the one nearer the solver's alt-55 rest) ----
+  const altDeg = num('alt', 55), alt = altDeg * D, sa = Math.sin(alt), ca = Math.cos(alt);
+  let Nh;
+  const solved = G.paper && G.paper.alts && G.paper.alts[String(altDeg)];
+  if (solved) Nh = new V3(...solved.normal).normalize();
+  else {
+    const e1 = perp(Math.abs(u.y) < .9 ? new V3(0, 1, 0) : new V3(1, 0, 0), u), e2 = new V3().crossVectors(u, e1);
+    const w = Rr.clone().sub(T), k = -sa * u.dot(w), w1 = e1.dot(w), w2 = e2.dot(w), rho = Math.hypot(w1, w2);
+    const cosArg = Math.max(-1, Math.min(1, k / (ca * rho))), psi = Math.atan2(w2, w1);
+    const Nof = ph => new V3().addScaledVector(u, sa).addScaledVector(e1, ca * Math.cos(ph)).addScaledVector(e2, ca * Math.sin(ph));
+    const prefer = G.paper ? new V3(...G.paper.normal) : new V3(-.5, 1, 0).normalize();
+    Nh = [psi + Math.acos(cosArg), psi - Math.acos(cosArg)].map(Nof).sort((a, b) => b.dot(prefer) - a.dot(prefer))[0];
+  }
+  // ---- hand root in the world: Nh -> up, the pen's shadow on the page at azimuth az (from 'toward the writer', +z, to the right, +x) ----
+  const az = num('az', G.display?.az ?? 35) * D;
+  const pH = perp(u, Nh), qH = new V3().crossVectors(pH, Nh);
+  const pW = new V3(Math.sin(az), 0, Math.cos(az)), upW = new V3(0, 1, 0), qW = new V3().crossVectors(pW, upW);
+  const mH = new THREE.Matrix4().makeBasis(pH, Nh, qH), mW = new THREE.Matrix4().makeBasis(pW, upW, qW);
+  const handQ = new Q4().setFromRotationMatrix(mW.multiply(mH.transpose()));
+  const handP = T.clone().applyQuaternion(handQ).negate();
+  const toW = v => new V3(...v).applyQuaternion(handQ).add(handP);
+  // ---- driveHand(): hand, forearm (wrist extension / ulnar deviation for the picture only), fingers ----
+  const ext = num('ext', 20) * D, dev = num('dev', 10) * D;
+  const elbowH = new V3(Math.sin(dev) * Math.cos(ext), Math.sin(ext), Math.cos(ext) * Math.cos(dev)).normalize().multiplyScalar(sd.L2);
+  const elbow = elbowH.clone().applyQuaternion(handQ).add(handP);
+  sd.hand.matrixWorld.compose(handP, handQ.clone().multiply(sd.offH), S_CM);
+  const X = new V3(1, 0, 0).applyQuaternion(handQ), dF = handP.clone().sub(elbow).normalize(), Xf = perp(X, dF), Zf = dF.clone().negate();
+  sd.fore.matrixWorld.compose(elbow, basisQ(Xf, new V3().crossVectors(Zf, Xf), Zf).multiply(sd.offF), S_CM);
+  const shoulder = elbow.clone().add(new V3(.12, .1, .2).normalize().multiplyScalar(sd.L1));
+  const dU = elbow.clone().sub(shoulder).normalize(), Xu = perp(Xf, dU), Zu = dU.clone().negate();
+  sd.upper.matrixWorld.compose(shoulder, basisQ(Xu, new V3().crossVectors(Zu, Xu), Zu).multiply(sd.offU), S_CM);
+  for (const c of sd.hand.children) c.updateMatrixWorld(true);
+  // ---- the pen (agr03 NB.pen: 140 mm, r 4.3 mm, a 14 mm cone to a 0.7 mm point) ----
+  const cyl = (r0, r1) => { const geo = new THREE.CylinderGeometry(r1, r0, 1, 32); geo.translate(0, .5, 0); return geo; };
+  const body = new THREE.Mesh(cyl(.0043, .0043), new THREE.MeshStandardMaterial({ color: 0x1d3f8f, roughness: .35, metalness: .15 }));
+  const tip = new THREE.Mesh(cyl(.0007, .0043), new THREE.MeshStandardMaterial({ color: 0xc9c9c9, roughness: .3, metalness: .9 }));
+  const UP = new V3(0, 1, 0), orient = (m, a, b) => { const d = b.clone().sub(a), L = d.length(); m.position.copy(a); m.quaternion.setFromUnitVectors(UP, d.multiplyScalar(1 / L)); m.scale.set(1, L, 1); };
+  const tipW = toW(pen.tip), uW = new V3(...pen.dir).normalize().applyQuaternion(handQ);
+  orient(tip, tipW, tipW.clone().addScaledVector(uW, .014)); orient(body, tipW.clone().addScaledVector(uW, .014), tipW.clone().addScaledVector(uW, .14));
+  for (const m of [body, tip]) { m.castShadow = true; m.receiveShadow = true; scene.add(m); }
+  // a little ink at the tip (a stroke just written, to the right of the tip: Arabic goes right to left)
+  { const ink = new THREE.Mesh(new THREE.PlaneGeometry(.03, .0006), new THREE.MeshBasicMaterial({ color: 0x15233f })); ink.rotation.x = -Math.PI / 2; ink.position.set(.015, .0001, 0); scene.add(ink); }
+  if (params.has('markers') && pose.contacts) {
+    const col = { thumb: 0xff3355, index: 0x22cc55, middle: 0xffaa00, web: 0x8844ff };
+    for (const [k, p] of Object.entries(pose.contacts)) { const s = new THREE.Mesh(new THREE.SphereGeometry(.0012, 12, 8), new THREE.MeshBasicMaterial({ color: col[k] || 0xffffff, depthTest: false })); s.position.copy(toW(p)); s.renderOrder = 9; scene.add(s); }
+    const s = new THREE.Mesh(new THREE.SphereGeometry(.0016, 12, 8), new THREE.MeshBasicMaterial({ color: 0x00bbff, depthTest: false })); s.position.copy(toW(G.ulnarRest)); s.renderOrder = 9; scene.add(s);
+  }
+  // ---- how far the skin is above the page (all hand / finger vertices) ----
+  const handBones = new Set([sd.iH, ...sd.digits.flat()]), vtmp = new V3();
+  let minH = Infinity, minBone = '';
+  for (let v = 0; v < nV; v++) {
+    if (!handBones.has(dom[v]) || !(armW[v] > .35)) continue;
+    mesh.getVertexPosition(v, vtmp); mesh.localToWorld(vtmp);
+    if (vtmp.y < minH) { minH = vtmp.y; minBone = bones[dom[v]].name.replace('Bip01_R_', ''); }
+  }
+  // ---- the views ----
+  const center = toW(pose.contacts?.index || pen.tip).lerp(tipW, .3);
+  const radialW = new V3(-1, 0, 0).applyQuaternion(handQ), fingersW = new V3(0, 0, -1).applyQuaternion(handQ);
+  const flat = v => new V3(v.x, 0, v.z).normalize();
+  const view = params.get('view') || 'eye', dist = num('dist', .34);
+  let camPos, look = center.clone(), camUp = new V3(0, 1, 0);
+  const eyeAt = params.get('eye') || 'near';
+  if (view === 'eye') { camPos = eyeAt === 'left' ? new V3(-.16, .36, .22) : new V3(-.09, .31, .2).normalize().multiplyScalar(dist * 1.15); look = tipW.clone().lerp(center, .25); }
+  else if (view === 'side') camPos = center.clone().add(flat(radialW).multiplyScalar(dist * .93).add(new V3(0, dist * .32, 0)));
+  else if (view === 'top') { camPos = center.clone().add(new V3(0, dist, 0)); camUp = new V3(0, 0, -1); }
+  else if (view === 'front') camPos = center.clone().add(flat(fingersW).multiplyScalar(dist * .9).add(new V3(0, dist * .38, 0)));
+  else if (view === 'ulnar') camPos = center.clone().add(flat(radialW).multiplyScalar(-dist * .95).add(new V3(0, dist * .22, 0)));
+  else camPos = new V3(...view.split(',').map(Number));
+  camera.position.copy(camPos); camera.up.copy(camUp); camera.lookAt(look);
+  key.target.position.copy(center);
+  const dg = Object.assign({}, G.diagnostics || {}, variant && pose.diagnostics ? pose.diagnostics : {});
+  const f1 = v => (typeof v === 'number' ? v.toFixed(1) : v);
+  const gp = dg.gaps_mm || {}, al = dg.along_pen_mm || dg.grip_mm || {}, pf = dg.pen_forearm_deg;
+  info.textContent = `view ${view}${view === 'eye' ? ' (' + eyeAt + ')' : ''}${variant ? ' · variant ' + variant : ''} · pen ${num('alt', 55)}° to the page · azimuth ${f1(az / D)}°\n` +
+    (dg.gaps_mm ? `contact gaps (mm): thumb pad ${f1(gp.thumb_pad ?? gp.thumb)}  index pad ${f1(gp.index_pad ?? gp.index)}  middle side ${f1(gp.middle_radial_side ?? gp.middle)}  web ${f1(gp.web)}\n` : '') +
+    (pf !== undefined ? `pen–forearm ${typeof pf === 'object' ? `${f1(pf.wrist_extended_20)}° with the wrist extended 20° (${f1(pf.wrist_straight)}° straight)` : f1(pf) + '°'}  ·  up the pen: index pad ${f1(al.index_pad ?? al.index)} mm, thumb ${f1(al.thumb_pad ?? al.thumb)}, middle ${f1(al.middle_side ?? al.middle)}\n` : '') +
+    (variant && pose.diagnostics ? `stroke variant: tip moved ${f1(pose.diagnostics.tip_shift_on_page_mm)} mm along the page (${f1(pose.diagnostics.tip_shift_perpendicular_to_pen_mm)} mm across the pen), pen turned ${f1(pose.diagnostics.pen_turn_deg)}°\n` : '') +
+    `lowest skin above the page: ${(minH * 1000).toFixed(1)} mm (${minBone})  ·  pen tip above the page: ${(tipW.y * 1000).toFixed(1)} mm` + (solved ? '' : '  ·  (no solved rest for this altitude: plane through the ulnar rest point)');
+  renderer.render(scene, camera);
+  requestAnimationFrame(() => { renderer.render(scene, camera); document.body.dataset.ready = '1'; });
+  addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); renderer.render(scene, camera); });
+}
+main().catch(e => { info.textContent = 'error: ' + (e && e.stack || e); document.body.dataset.ready = '1'; console.error(e); });
+</script>
+</body>
+</html>

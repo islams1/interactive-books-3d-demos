@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Full-body Scan Test</title>
+<style>
+  :root { --bg: #1b1d21; --panel: rgba(20,22,26,.82); --fg: #eef0f3; --mut: #9aa0a8; --acc: #f08a3c; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font: 14px/1.4 system-ui, "Segoe UI", Tahoma, sans-serif; overflow: hidden; }
+  canvas { display: block; }
+  #ui { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;
+        background: var(--panel); padding: 8px; border-radius: 12px; max-width: calc(100vw - 32px); }
+  #ui button { background: #2b2f36; color: var(--fg); border: 1px solid #3a3f48; border-radius: 8px; padding: 6px 12px; cursor: pointer; font: inherit; }
+  #ui button.on { background: var(--acc); border-color: var(--acc); color: #1b1d21; }
+  #info { position: fixed; top: 16px; right: 16px; background: var(--panel); padding: 8px 12px; border-radius: 10px; color: var(--mut); font-size: 12px; }
+</style>
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+}}
+</script>
+</head>
+<body>
+<div id="info">جاري التحميل…</div>
+<div id="ui"></div>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+
+const params = new URLSearchParams(location.search), V3 = THREE.Vector3, Q4 = THREE.Quaternion;
+const FIG = 'assets/fullbody/' + (params.get('fig') ? params.get('fig') + '/' : '') + 'figure';
+const info = document.getElementById('info');
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.shadowMap.enabled = true;
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0xb9bcc0);
+const camera = new THREE.PerspectiveCamera(35, innerWidth / innerHeight, .05, 100);
+const ctl = new OrbitControls(camera, renderer.domElement); ctl.target.set(0, 1.0, 0); ctl.enableDamping = true;
+{ // camera presets for screenshots: ?view=front|q|side|back|face
+  const v = params.get('view') || 'front', P = { front: [0, 1.2, 3.6], q: [2.3, 1.3, 2.8], side: [3.6, 1.2, 0], back: [0, 1.25, -3.6], facef: [0, 1.55, .95], face: [.25, 1.55, .95], faceq: [.6, 1.55, .75] }[v] || [0, 1.2, 3.6];
+  camera.position.set(...P); if (v.startsWith('face')) ctl.target.set(0, 1.5, 0); ctl.update();
+}
+// neutral studio room
+scene.add(new THREE.HemisphereLight(0xf4f1ec, 0x6d6a66, 1.1));
+const key = new THREE.DirectionalLight(0xffffff, 1.4); key.position.set(2, 4, 3); key.castShadow = true; scene.add(key);
+const floor = new THREE.Mesh(new THREE.CircleGeometry(6, 64), new THREE.MeshStandardMaterial({ color: 0x9a9da1, roughness: .95 }));
+floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+const wall = new THREE.Mesh(new THREE.PlaneGeometry(14, 6), new THREE.MeshStandardMaterial({ color: 0xc9cbce, roughness: 1 })); wall.position.set(0, 3, -3.2); scene.add(wall);
+const shadow = new THREE.Mesh(new THREE.CircleGeometry(.32, 32), new THREE.MeshBasicMaterial({ color: 0, transparent: true, opacity: .28, depthWrite: false }));
+shadow.rotation.x = -Math.PI / 2; shadow.position.y = .002; scene.add(shadow);
+
+/* ---------------- splats, skinned by the proxy skeleton ---------------- */
+const _h2f = (() => { const t = new Float32Array(65536); for (let h = 0; h < 65536; h++) { const s = h & 0x8000 ? -1 : 1, e = (h >> 10) & 31, m = h & 1023; t[h] = s * (e === 0 ? m * 2 ** -24 : e === 31 ? (m ? NaN : Infinity) : (1 + m / 1024) * 2 ** (e - 15)); } return t; })();
+async function loadFigure(basePath, skinned, boneRemap) {
+  const [buf, shb, skb, meta] = await Promise.all([`${basePath}.splat`, `${basePath}.sh`, `${basePath}.skin`, `${basePath}.json`].map((u, i) => fetch(u).then(r => i === 3 ? r.json() : r.arrayBuffer())));
+  const N = buf.byteLength / 40, dv = new DataView(buf), NS = meta.scan;
+  const pos = new Float32Array(N * 3), covA = new Float32Array(N * 3), covB = new Float32Array(N * 3), col = new Uint8Array(N * 4);
+  for (let i = 0; i < N; i++) {
+    const o = i * 40;
+    for (let k = 0; k < 3; k++) pos[i * 3 + k] = dv.getFloat32(o + k * 4, true);
+    covA[i * 3] = dv.getFloat32(o + 12, true); covA[i * 3 + 1] = dv.getFloat32(o + 16, true); covA[i * 3 + 2] = dv.getFloat32(o + 20, true);
+    covB[i * 3] = dv.getFloat32(o + 24, true); covB[i * 3 + 1] = dv.getFloat32(o + 28, true); covB[i * 3 + 2] = dv.getFloat32(o + 32, true);
+    for (let k = 0; k < 4; k++) col[i * 4 + k] = dv.getUint8(o + 36 + k);
+  }
+  if (params.get('only') === 'scan') for (let i = NS; i < N; i++) col[i * 4 + 3] = 0;
+  if (params.get('only') === 'body') for (let i = 0; i < NS; i++) col[i * 4 + 3] = 0;
+  const hb = new Uint16Array(shb, 0, NS * 45), SH = new Float32Array(NS * 45); for (let i = 0; i < SH.length; i++) SH[i] = _h2f[hb[i]];
+  const raw = new Uint8Array(skb), sIdx = new Float32Array(N * 4), sW = new Float32Array(N * 4);
+  for (let i = 0; i < N; i++) { let s = 0; for (let k = 0; k < 4; k++) { sIdx[i * 4 + k] = boneRemap[raw[i * 8 + k]]; s += sW[i * 4 + k] = raw[i * 8 + 4 + k] / 255; } for (let k = 0; k < 4; k++) sW[i * 4 + k] /= s || 1; }
+  const g = new THREE.InstancedBufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array([-2, -2, 0, 2, -2, 0, 2, 2, 0, -2, 2, 0]), 3)); g.setIndex([0, 1, 2, 0, 2, 3]);
+  const A = { center: [pos, 3], covA: [covA, 3], covB: [covB, 3], rgba: [col, 4], skinI: [sIdx, 4], skinW: [sW, 4] }, sorted = {};
+  for (const [k, [src, n]] of Object.entries(A)) { const arr = new src.constructor(src.length); arr.set(src); const at = new THREE.InstancedBufferAttribute(arr, n, k === 'rgba'); at.setUsage(THREE.DynamicDrawUsage); g.setAttribute(k, at); sorted[k] = at; }
+  g.instanceCount = N;
+  const sk = skinned.skeleton;
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { uViewport: { value: new THREE.Vector2(1, 1) }, boneTexture: { value: null }, bindMatrix: { value: skinned.bindMatrix }, bindMatrixInverse: { value: skinned.bindMatrixInverse } },
+    vertexShader: `attribute vec3 center, covA, covB; attribute vec4 rgba, skinI, skinW; uniform vec2 uViewport; uniform sampler2D boneTexture; uniform mat4 bindMatrix, bindMatrixInverse; varying vec4 vCol; varying vec2 vPos;
+      mat4 bone(float i){ int size = textureSize(boneTexture, 0).x; int j = int(i) * 4; int x = j % size; int y = j / size;
+        return mat4(texelFetch(boneTexture, ivec2(x, y), 0), texelFetch(boneTexture, ivec2(x + 1, y), 0), texelFetch(boneTexture, ivec2(x + 2, y), 0), texelFetch(boneTexture, ivec2(x + 3, y), 0)); }
+      void main(){
+        mat4 S = bindMatrixInverse * (bone(skinI.x) * skinW.x + bone(skinI.y) * skinW.y + bone(skinI.z) * skinW.z + bone(skinI.w) * skinW.w) * bindMatrix;
+        vec4 cam = viewMatrix * (modelMatrix * (S * vec4(center, 1.))); vec4 clip = projectionMatrix * cam;
+        float lim = 1.2 * clip.w;
+        if (cam.z > -.01 || abs(clip.x) > lim || abs(clip.y) > lim) { gl_Position = vec4(0., 0., 2., 1.); return; }
+        float z = -cam.z; vec2 f = vec2(projectionMatrix[0][0], projectionMatrix[1][1]) * uViewport * .5;
+        mat3 J = mat3(f.x / z, 0., 0.,  0., f.y / z, 0.,  f.x * cam.x / (z * z), f.y * cam.y / (z * z), 0.);
+        mat3 W = mat3(viewMatrix) * mat3(modelMatrix) * mat3(S);
+        mat3 V = mat3(covA.x, covA.y, covA.z,  covA.y, covB.x, covB.y,  covA.z, covB.y, covB.z);
+        mat3 T = J * W; mat3 c2 = T * V * transpose(T);
+        float a = c2[0][0] + .3, b = c2[0][1], d = c2[1][1] + .3;
+        float mid = .5 * (a + d), rad = length(vec2(.5 * (a - d), b));
+        float l1 = mid + rad, l2 = max(mid - rad, .1);
+        vec2 dir = normalize(vec2(b, l1 - a) + vec2(1e-6, 0.));
+        vec2 maj = min(sqrt(2. * l1), 1024.) * dir, mnr = min(sqrt(2. * l2), 1024.) * vec2(dir.y, -dir.x);
+        vCol = rgba; vPos = position.xy;
+        gl_Position = vec4(clip.xy / clip.w + (position.x * maj + position.y * mnr) / uViewport * 2., clip.z / clip.w, 1.);
+      }`,
+    fragmentShader: `varying vec4 vCol; varying vec2 vPos;
+      void main(){ float A = -dot(vPos, vPos); if (A < -4.) discard; float B = exp(A) * vCol.a; gl_FragColor = vec4(vCol.rgb * B, B); }`,
+    transparent: true, depthWrite: false, depthTest: true, side: THREE.DoubleSide,
+    blending: THREE.CustomBlending, blendSrc: THREE.OneFactor, blendDst: THREE.OneMinusSrcAlphaFactor,
+  });
+  const mesh = new THREE.Mesh(g, mat); mesh.frustumCulled = false; mesh.renderOrder = 5; mesh.matrixAutoUpdate = false;
+  // CPU skinning of the centres, for back-to-front sorting + view-dependent colour of the scan
+  const wpos = new Float32Array(N * 3), depth = new Float32Array(N), idx = new Uint32Array(N), mv = new THREE.Matrix4(), base = Float32Array.from(col);
+  const BM = sk.boneMatrices, bi = skinned.bindMatrix.elements, bii = skinned.bindMatrixInverse.elements;
+  const R = meta.R, C1 = .4886025119029199, C2 = [1.0925484305920792, -1.0925484305920792, .31539156525252005, -1.0925484305920792, .5462742152960396],
+        C3 = [-.5900435899266435, 2.890611442640554, -.4570457994644658, .3731763325901154, -.4570457994644658, 1.445305721320277, -.5900435899266435], bs = new Float32Array(15);
+  const m = new Float32Array(16), camL = new V3(), inv = new THREE.Matrix4(); let tick = 0;
+  const HI = sk.bones.findIndex(b => /Head$/.test(b.name)), Rs = meta.Rs || [[1, 0, 0], [0, 1, 0], [0, 0, 1]], _S = new THREE.Matrix4(), _r = new THREE.Matrix3(), G = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+  function headFrame() {               // G = r · Rs · R  (r = head rotation since rest, in the figure's own frame)
+    _S.fromArray(BM, HI * 16).premultiply(skinned.bindMatrixInverse).multiply(skinned.bindMatrix); _r.setFromMatrix4(_S);
+    const e = _r.elements, c = [0, 1, 2].map(j => Math.hypot(e[j * 3], e[j * 3 + 1], e[j * 3 + 2]) || 1);
+    const r = [0, 1, 2].map(i => [0, 1, 2].map(j => e[j * 3 + i] / c[j]));
+    const mul = (A, B) => A.map((row, i) => [0, 1, 2].map(j => row[0] * B[0][j] + row[1] * B[1][j] + row[2] * B[2][j]));
+    const g = mul(mul(r, Rs), R); for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) G[i][j] = g[i][j];
+  }
+  function skinCentres() {
+    for (let i = 0; i < N; i++) {
+      const x0 = pos[i * 3], y0 = pos[i * 3 + 1], z0 = pos[i * 3 + 2];
+      const bx = bi[0] * x0 + bi[4] * y0 + bi[8] * z0 + bi[12], by = bi[1] * x0 + bi[5] * y0 + bi[9] * z0 + bi[13], bz = bi[2] * x0 + bi[6] * y0 + bi[10] * z0 + bi[14];
+      let X = 0, Y = 0, Z = 0;
+      for (let k = 0; k < 4; k++) { const w = sW[i * 4 + k]; if (!w) continue; const o = sIdx[i * 4 + k] * 16;
+        X += w * (BM[o] * bx + BM[o + 4] * by + BM[o + 8] * bz + BM[o + 12]); Y += w * (BM[o + 1] * bx + BM[o + 5] * by + BM[o + 9] * bz + BM[o + 13]); Z += w * (BM[o + 2] * bx + BM[o + 6] * by + BM[o + 10] * bz + BM[o + 14]); }
+      wpos[i * 3] = bii[0] * X + bii[4] * Y + bii[8] * Z + bii[12]; wpos[i * 3 + 1] = bii[1] * X + bii[5] * Y + bii[9] * Z + bii[13]; wpos[i * 3 + 2] = bii[2] * X + bii[6] * Y + bii[10] * Z + bii[14];
+    }
+  }
+  function shade(cam) {               // spherical-harmonic colour of the scanned head (view direction in the head's rest frame)
+    camL.setFromMatrixPosition(cam.matrixWorld).applyMatrix4(inv.copy(mesh.matrixWorld).invert()); headFrame();
+    for (let i = 0; i < NS; i++) {
+      let dx = wpos[i * 3] - camL.x, dy = wpos[i * 3 + 1] - camL.y, dz = wpos[i * 3 + 2] - camL.z; const l = Math.hypot(dx, dy, dz) || 1; dx /= l; dy /= l; dz /= l;
+      const x = G[0][0] * dx + G[1][0] * dy + G[2][0] * dz, y = G[0][1] * dx + G[1][1] * dy + G[2][1] * dz, z = G[0][2] * dx + G[1][2] * dy + G[2][2] * dz;
+      const xx = x * x, yy = y * y, zz = z * z;
+      bs[0] = -C1 * y; bs[1] = C1 * z; bs[2] = -C1 * x;
+      bs[3] = C2[0] * x * y; bs[4] = C2[1] * y * z; bs[5] = C2[2] * (2 * zz - xx - yy); bs[6] = C2[3] * x * z; bs[7] = C2[4] * (xx - yy);
+      bs[8] = C3[0] * y * (3 * xx - yy); bs[9] = C3[1] * x * y * z; bs[10] = C3[2] * y * (4 * zz - xx - yy); bs[11] = C3[3] * z * (2 * zz - 3 * xx - 3 * yy);
+      bs[12] = C3[4] * x * (4 * zz - xx - yy); bs[13] = C3[5] * z * (xx - yy); bs[14] = C3[6] * x * (xx - 3 * yy);
+      const o = i * 45;
+      for (let c = 0; c < 3; c++) { let s = 0; const q = o + c * 15; for (let k = 0; k < 15; k++) s += SH[q + k] * bs[k]; const v = base[i * 4 + c] + s * 255; col[i * 4 + c] = v < 0 ? 0 : v > 255 ? 255 : v; }
+    }
+  }
+  mesh.userData.sort = cam => {
+    skinCentres();
+    if (tick++ % 2 === 0) shade(cam);
+    mv.multiplyMatrices(cam.matrixWorldInverse, mesh.matrixWorld); const e = mv.elements;
+    for (let i = 0; i < N; i++) { depth[i] = e[2] * wpos[i * 3] + e[6] * wpos[i * 3 + 1] + e[10] * wpos[i * 3 + 2]; idx[i] = i; }
+    idx.sort((x, y) => depth[x] - depth[y]);
+    for (const [k, [src, n]] of Object.entries(A)) { const dst = sorted[k].array; for (let j = 0; j < N; j++) { const s = idx[j] * n, t = j * n; for (let c = 0; c < n; c++) dst[t + c] = src[s + c]; } sorted[k].needsUpdate = true; }
+  };
+  mesh.userData.meta = meta; mesh.userData.N = N;
+  return mesh;
+}
+
+/* ---------------- Rocketbox mocap -> Mixamo skeleton (world-space rotation deltas from the rest poses) ---------------- */
+const MAP = { Pelvis: 'Hips', Spine: 'Spine', Spine1: 'Spine1', Spine2: 'Spine2', Neck: 'Neck', Head: 'Head',
+  L_Clavicle: 'LeftShoulder', L_UpperArm: 'LeftArm', L_Forearm: 'LeftForeArm', L_Hand: 'LeftHand',
+  R_Clavicle: 'RightShoulder', R_UpperArm: 'RightArm', R_Forearm: 'RightForeArm', R_Hand: 'RightHand',
+  L_Thigh: 'LeftUpLeg', L_Calf: 'LeftLeg', L_Foot: 'LeftFoot', L_Toe0: 'LeftToeBase',
+  R_Thigh: 'RightUpLeg', R_Calf: 'RightLeg', R_Foot: 'RightFoot', R_Toe0: 'RightToeBase' };
+const CLIPS = [
+  { id: 'f_idle_neutral_02', label: 'وقفة طبيعية', src: 'assets/fullbody/anim/f_idle_neutral_02.fbx' },
+  { id: 'm_idle_look_around_01', label: 'تبص حواليها', src: 'assets/anim/m_idle_look_around_01.fbx' },
+  { id: 'm_idle_nervous_03', label: 'متوترة', src: 'assets/anim/m_idle_nervous_03.fbx' },
+  { id: 'f_gestic_listen_accept_03', label: 'بتسمع وبتهز راسها', src: 'assets/fullbody/anim/f_gestic_listen_accept_03.fbx' },
+  { id: 'f_walk_neutral_01', label: 'مشي', src: 'assets/fullbody/anim/f_walk_neutral_01.fbx', walk: true },
+  { id: 'm_walk_neutral_01', label: 'مشي ٢', src: 'assets/anim/m_walk_neutral_01.fbx', walk: true },
+  { id: 'm_run_neutral_01', label: 'جري', src: 'assets/anim/m_run_neutral_01.fbx', walk: true },
+];
+const quiet = new THREE.LoadingManager(); quiet.setURLModifier(u => /\.(tga|png|jpg)$/i.test(u) ? 'data:,' : u);
+
+const meta0 = await (await fetch(FIG + '.json')).json();             // ?fig=man -> assets/fullbody/man/figure.json (its own rigged proxy)
+const [proxy, src] = await Promise.all([
+  new FBXLoader(quiet).loadAsync(meta0.proxy || 'assets/fullbody/LHM500M_woman-photoreal_proxy.fbx'),
+  new FBXLoader(quiet).loadAsync('assets/Construction_Female_01/Construction_Female_01.fbx'),
+]);
+proxy.scale.setScalar(.01); src.scale.setScalar(.01);
+let skinned = null; proxy.traverse(o => { if (o.isSkinnedMesh) skinned = o; });
+skinned.visible = params.has('proxy'); if (skinned.visible) skinned.material = new THREE.MeshStandardMaterial({ color: 0x88aacc, wireframe: true });
+src.visible = params.has('src'); src.position.x = 1.2;
+scene.add(proxy, src);
+// stand her on the floor
+proxy.updateMatrixWorld(true); skinned.geometry.computeBoundingBox();
+const bb = skinned.geometry.boundingBox.clone().applyMatrix4(skinned.matrixWorld); proxy.position.y = -bb.min.y; proxy.updateMatrixWorld(true);
+{ // camera presets were set for the woman (1.75 m): shift them to this figure's height (the man is ~1.92 m)
+  const dh = (bb.max.y - bb.min.y) - 1.748, v = params.get('view') || 'front';
+  if (Math.abs(dh) > .02) { camera.position.y += v.startsWith('face') ? dh : dh * .5; ctl.target.y += v.startsWith('face') ? dh : dh * .5; ctl.update(); }
+}
+src.updateMatrixWorld(true);
+
+const tBones = {}; skinned.skeleton.bones.forEach(b => tBones[b.name.replace(/^mixamorig:?/, '')] = b);
+const sBones = {}; src.traverse(o => { if (o.isBone) sBones[o.name.replace(/^Bip01_?/, '')] = o; });
+const pairs = Object.entries(MAP).filter(([s, t]) => sBones[s] && tBones[t]).map(([s, t]) => ({ s: sBones[s], t: tBones[t] }));
+console.log('retarget pairs', pairs.length, 'missing', Object.entries(MAP).filter(([s, t]) => !sBones[s] || !tBones[t]).map(p => p.join('->')).join(', '));
+const wq = o => o.getWorldQuaternion(new Q4());
+for (const p of pairs) { p.sRest = wq(p.s); p.tRest = wq(p.t); p.C = new Q4(); }
+// rest-pose correction: Rocketbox stands in an A-pose, the Mixamo proxy in a T-pose. For each limb bone, C turns the
+// source's rest bone direction onto the target's, so the target copies the source's actual bone directions.
+const CHILD = { L_Clavicle: 'L_UpperArm', L_UpperArm: 'L_Forearm', L_Forearm: 'L_Hand', R_Clavicle: 'R_UpperArm', R_UpperArm: 'R_Forearm', R_Forearm: 'R_Hand',
+  L_Thigh: 'L_Calf', L_Calf: 'L_Foot', R_Thigh: 'R_Calf', R_Calf: 'R_Foot', Spine: 'Spine1', Spine1: 'Spine2', Spine2: 'Neck', Neck: 'Head' };
+const wp = o => o.getWorldPosition(new V3());
+for (const p of pairs) {
+  const sk = Object.keys(MAP).find(k => sBones[k] === p.s);
+  const HANDC = { L_Hand: ['L_Finger2', 'LeftHandIndex1'], R_Hand: ['R_Finger2', 'RightHandIndex1'], L_Foot: ['L_Toe0', 'LeftToeBase'], R_Foot: ['R_Toe0', 'RightToeBase'] };
+  const sc = HANDC[sk] ? sBones[HANDC[sk][0]] : sBones[CHILD[sk]], tc = HANDC[sk] ? tBones[HANDC[sk][1]] : tBones[MAP[CHILD[sk]]];
+  if (!sc || !tc) continue;
+  const ds = wp(sc).sub(wp(p.s)).normalize(), dt = wp(tc).sub(wp(p.t)).normalize();
+  p.C.setFromUnitVectors(ds, dt);
+}
+const hipsT = tBones.Hips, hipsS = sBones.Pelvis;
+const hipRestT = hipsT.getWorldPosition(new V3()), hipRestS = hipsS.getWorldPosition(new V3());
+const hipScale = (hipRestT.y - proxy.position.y * 0) / Math.max(hipRestS.y, 1e-3);
+const restLocalHips = hipsT.position.clone();
+
+const mixer = new THREE.AnimationMixer(src); const clipCache = {}; let current = null, curDef = null;
+const srcNames = new Set(Object.keys(sBones).map(k => 'Bip01' + (k ? '_' + k : '')));
+async function play(def) {
+  if (!clipCache[def.id]) {
+    const a = await new FBXLoader(quiet).loadAsync(def.src), c = a.animations[0];
+    const keep = c.tracks.filter(t => { const [node, prop] = t.name.split('.'); return srcNames.has(node) && (prop === 'quaternion' || (node === 'Bip01_Pelvis' && prop === 'position')); });
+    clipCache[def.id] = new THREE.AnimationClip(def.id, c.duration, keep);
+  }
+  const act = mixer.clipAction(clipCache[def.id]); act.reset().play();
+  if (current && current !== act) act.crossFadeFrom(current, .4, false);
+  current = act; curDef = def;
+  document.querySelectorAll('#ui button').forEach(b => b.classList.toggle('on', b.dataset.id === def.id));
+}
+const _q = new Q4(), _pq = new Q4(), _cq = new Q4(), _v = new V3();
+function retarget() {
+  if (params.has('rest')) return;
+  src.updateMatrixWorld(true);
+  for (const p of pairs) {                                  // parents first (MAP order follows the hierarchy)
+    _q.copy(wq(p.s)).multiply(_pq.copy(p.sRest).invert()).multiply(_cq.copy(p.C).invert()).multiply(p.tRest);   // source bone direction, carried onto the target's rest
+    p.t.parent.getWorldQuaternion(_pq).invert(); p.t.quaternion.copy(_pq.multiply(_q));
+    p.t.updateMatrixWorld(true);
+  }
+  // hips: vertical + small sway follow the mocap, scaled to her leg length; the walk stays on the spot
+  const d = hipsS.getWorldPosition(_v).sub(hipRestS).multiplyScalar(hipScale);
+  if (curDef?.walk) { d.x = 0; d.z = 0; }
+  else { d.x = THREE.MathUtils.clamp(d.x, -.06, .06); d.z = THREE.MathUtils.clamp(d.z, -.06, .06); }
+  const wp = hipRestT.clone().add(d); hipsT.parent.worldToLocal(wp); hipsT.position.copy(wp);
+  proxy.updateMatrixWorld(true);
+}
+
+/* ---------------- her head: looks at you, glances left/right the way people do ----------------
+   Target = you (the camera). Every few seconds she glances away to one side, then comes back to you — or straight back
+   to you as soon as you move. The turn is shared ~40% neck / 60% head, starts quick and lands softly (critically damped),
+   tilts a little into the turn and dips slightly while moving, plus a slow breathing drift. */
+const PB = n => pairs.find(p => p.t === tBones[n]);
+const headB = tBones.Head, neckB = tBones.Neck, chestB = tBones.Spine2;
+const headRest = PB('Head').tRest.clone(), neckRest = PB('Neck').tRest.clone(), chestRest = PB('Spine2').tRest.clone();
+const LOOK_W = { m_idle_look_around_01: .25 };                 // that clip turns her head by itself
+const FORCE = params.get('gaze');                               // screenshots: ?gaze=you | <yaw radians>
+const gaze = { y: 0, p: 0, vy: 0, vp: 0, goalY: 0, goalP: 0, pendY: 0, pendP: 0, react: 0, mode: 'you', t: 0, next: 3 + Math.random() * 3, gy: 0, gp: 0, w: 0, lastCam: camera.position.clone() };
+const P0 = +(params.get('p0') ?? .07);                            // her neutral head was a little chin-up
+const _B = new Q4(), _Bi = new Q4(), _d = new V3(), _hp = new V3(), _R = new Q4(), _Rn = new Q4(), _e = new THREE.Euler(0, 0, 0, 'YXZ'), _w1 = new Q4(), _w2 = new Q4(), _pw = new Q4();
+function spring(x, v, target, w, dt) { const a = w * w * (target - x) - 2 * w * v; v += a * dt; return [x + v * dt, v]; }
+function lookUpdate(dt) {
+  if (params.has('nolook')) return;
+  const g = gaze; g.t += dt;
+  _B.copy(wq(chestB)).multiply(_Bi.copy(chestRest).invert());                       // how her chest has turned since rest
+  headB.getWorldPosition(_hp);
+  _d.copy(camera.position).sub(_hp).applyQuaternion(_Bi.copy(_B).invert()).normalize();   // you, seen from her chest (z = her front)
+  const youY = Math.atan2(_d.x, _d.z), youP = -Math.asin(THREE.MathUtils.clamp(_d.y, -1, 1));
+  if (camera.position.distanceTo(g.lastCam) > .03) {                                 // you moved: she comes back to you
+    if (g.mode !== 'you') { g.mode = 'you'; g.react = 0; }
+    g.next = Math.max(g.next, g.t + 2.5); g.lastCam.copy(camera.position);
+  }
+  if (g.t > g.next) {
+    if (g.mode === 'you') { const s = Math.random() < .5 ? -1 : 1; g.mode = 'away'; g.gy = s * (.4 + Math.random() * .45); g.gp = (Math.random() - .3) * .16; g.next = g.t + .9 + Math.random() * 1.6; }
+    else { g.mode = 'you'; g.next = g.t + 3.5 + Math.random() * 4; }
+    g.react = 0;
+  }
+  // where her head wants to point. A person does not track you continuously: the head jumps to you in steps,
+  // after a short reaction delay, only once you have moved more than ~7°; the eyes would cover the rest.
+  let wy, wp;
+  if (FORCE !== null && FORCE !== 'you') { wy = +FORCE; wp = 0; }
+  else if (g.mode === 'you' || FORCE === 'you') { wy = Math.abs(youY) > 1.45 ? Math.sign(youY) * 1.0 : youY * .95; wp = youP * .6; }
+  else { wy = g.gy; wp = g.gp; }
+  wy = THREE.MathUtils.clamp(wy, -1.05, 1.05); wp = THREE.MathUtils.clamp(wp, -.25, .3);
+  if (FORCE !== null) { g.goalY = wy; g.goalP = wp; }
+  else if (g.react > 0) { if (g.t >= g.react) { g.goalY = g.pendY; g.goalP = g.pendP; g.react = 0; } }
+  else if (Math.abs(wy - g.goalY) > .12 || Math.abs(wp - g.goalP) > .1) { g.pendY = wy; g.pendP = wp; g.react = g.t + .12 + Math.random() * .12; }
+  const om = g.mode === 'away' ? 8 : 6.5;                                            // a 45° turn takes ~0.45 s, starts quick, lands soft
+  [g.y, g.vy] = spring(g.y, g.vy, g.goalY, om, dt); [g.p, g.vp] = spring(g.p, g.vp, g.goalP, om, dt);
+  if (FORCE !== null) { g.y = g.goalY; g.p = g.goalP; g.vy = g.vp = 0; }
+  const tt = g.t;
+  const yaw = g.y + Math.sin(tt * .29) * .015 + Math.sin(tt * .83 + 2) * .006;
+  const pitch = P0 + g.p + Math.sin(tt * 1.55) * .008 + Math.min(.04, Math.abs(g.vy) * .02);   // level chin + breathing nod + dip while turning
+  const roll = -g.y * .06 + Math.sin(tt * .41 + 1) * .01;                                          // slight tilt into the turn
+  const wT = (LOOK_W[curDef?.id] ?? .9) * +(params.get('look') ?? 1);
+  g.w = FORCE !== null ? wT : g.w + (wT - g.w) * Math.min(1, dt * 3);
+  // big turns bring the chest along a little (people do not turn the neck alone past ~40°)
+  const chestYaw = Math.sign(yaw) * Math.max(0, Math.abs(yaw) - .45) * .35 * g.w;
+  if (chestYaw) {
+    _e.set(0, chestYaw, 0); _Rn.setFromEuler(_e); _w1.copy(_B).multiply(_Rn).multiply(chestRest);
+    chestB.parent.getWorldQuaternion(_pw).invert(); chestB.quaternion.copy(_pw.multiply(_w1)); chestB.updateMatrixWorld(true);
+  }
+  // neck ~40%, head the rest (in her chest's frame as the animation left it)
+  _e.set(pitch * .4, yaw * .4, roll * .4); _Rn.setFromEuler(_e);
+  _e.set(pitch, yaw, roll); _R.setFromEuler(_e);
+  _w1.copy(_B).multiply(_Rn).multiply(neckRest); _w2.copy(wq(neckB)).slerp(_w1, g.w);
+  neckB.parent.getWorldQuaternion(_pw).invert(); neckB.quaternion.copy(_pw.multiply(_w2)); neckB.updateMatrixWorld(true);
+  _w1.copy(_B).multiply(_R).multiply(headRest); _w2.copy(wq(headB)).slerp(_w1, g.w);
+  headB.parent.getWorldQuaternion(_pw).invert(); headB.quaternion.copy(_pw.multiply(_w2)); headB.updateMatrixWorld(true);
+}
+
+
+// bone index remap: Blender bone order (figure.json) -> three.js skeleton order
+const remap = meta0.bones.map(n => skinned.skeleton.bones.findIndex(b => b.name.replace(/[^A-Za-z0-9]/g, '') === n.replace(/[^A-Za-z0-9]/g, '')));
+console.log('unmapped bones', meta0.bones.filter((n, i) => remap[i] < 0));
+skinned.skeleton.computeBoneTexture();
+const fig = await loadFigure(FIG, skinned, remap.map(i => Math.max(i, 0)));
+fig.material.uniforms.boneTexture.value = skinned.skeleton.boneTexture;
+scene.add(fig);
+
+// UI
+const ui = document.getElementById('ui');
+for (const c of CLIPS) { const b = document.createElement('button'); b.textContent = c.label; b.dataset.id = c.id; b.onclick = () => play(c); ui.appendChild(b); }
+await play(CLIPS.find(c => c.id === params.get('clip')) || CLIPS[0]);
+info.textContent = `${fig.userData.N.toLocaleString()} نقطة · الوش: المسح الأصلي · الجسم: LHM (للتجربة فقط)`;
+
+const clock = new THREE.Clock(); let frame = 0;
+const warm = +(params.get('warm') || 0), at = params.has('t') ? +params.get('t') : null;
+if (at !== null) mixer.update(at);
+function tick() {
+  const dt = Math.min(clock.getDelta(), .05);
+  if (at === null) mixer.update(dt);
+  retarget(); lookUpdate(dt); skinned.skeleton.update();
+  fig.matrix.copy(skinned.matrixWorld); fig.matrixWorld.copy(skinned.matrixWorld);
+  fig.material.uniforms.uViewport.value.set(renderer.domElement.width, renderer.domElement.height);
+  if (frame % 3 === 0) fig.userData.sort(camera);
+  const hp = hipsT.getWorldPosition(_v); shadow.position.x = hp.x; shadow.position.z = hp.z;
+  ctl.update(); renderer.render(scene, camera); frame++;
+  if (warm && frame === warm) document.body.dataset.ready = '1';
+  requestAnimationFrame(tick);
+}
+tick();
+addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+</script>
+</body>
+</html>
