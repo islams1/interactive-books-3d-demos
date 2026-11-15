@@ -65,7 +65,7 @@ Each demo is an Interactive Book page shown as a 3D world:
 | **What it teaches** | What to do in a small electrical fire: warn people first; look at what is burning; **pick the right extinguisher and explain why** (powder, never water, on a live power strip); use it correctly with **PASS** (Pull the pin, Aim at the base, Squeeze, Sweep); report what happened |
 | **For** | First-year technical students |
 | **Live demo** | https://instant-crystal-wnj8dit-islams-projects-5b27661f.vercel.app/ |
-| **Repository** | Not created yet. The code is not in git. |
+| **Repository** | https://github.com/islams1/interactive-books-3d-demos (private) |
 | **Status** | **Done.** The whole scenario works, with 3 endings. |
 
 - **Done:**
@@ -92,7 +92,7 @@ Each demo is an Interactive Book page shown as a 3D world:
 | **What it teaches** | **Look before you act.** Collect evidence, write it in a notebook, then choose the treatment that matches the real cause. (The plant is not thirsty: its pot cannot drain.) |
 | **For** | Agriculture students aged 16–18 |
 | **Live demo** | https://fast-dune-d4l8zrv-islams-projects-5b27661f.vercel.app/ |
-| **Repository** | Not created yet |
+| **Repository** | https://github.com/islams1/interactive-books-3d-demos (private) |
 | **Status** | **Done.** The whole scenario works, with 3 endings and a teacher rating scale. |
 
 - **Done:**
