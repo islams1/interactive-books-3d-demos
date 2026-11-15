@@ -7,6 +7,7 @@ Browser-based 3D training scenarios built from client situation briefs by Islam 
 | **SAF-01 The Wrong Extinguisher** | Raise the alarm, choose the right extinguisher and say why, use it with PASS, report | https://instant-crystal-wnj8dit-islams-projects-5b27661f.vercel.app/ |
 | **AGR-03 The Wilting Tomato** | Check the plant, write evidence in a 3D notebook, recommend the right treatment | https://fast-dune-d4l8zrv-islams-projects-5b27661f.vercel.app/ |
 | **AQ-01 Still in Lane Four** (phase 1) | Spot a swimmer sinking silently under surface glare, blow the whistle in time | local only |
+| **Situation 5: Starbucks** (separate repo) | MBA/MPA marketing-strategy situation in 3D | https://third-place-bus3.vercel.app/ · repo: https://github.com/islams1/starbucks-test-bus3 |
 
 ## Documentation
 

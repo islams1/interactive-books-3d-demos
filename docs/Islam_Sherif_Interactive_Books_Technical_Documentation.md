@@ -6,6 +6,7 @@
 | Date | 15 November 2026 |
 | Demos | SAF-01 *The Wrong Extinguisher* · AGR-03 *The Wilting Tomato* · AQ-01 *Still in Lane Four* (in progress) |
 | Optional variant | BUS-03 *Starbucks marketing situation* (SYRA-EDU-BUS-03), a separate codebase that follows the same flow. Where it does something differently, this document marks it **Optional** (see Section 13). |
+| Repositories | Main: https://github.com/islams1/interactive-books-3d-demos (private) <br> Situation 5 (Starbucks): https://github.com/islams1/starbucks-test-bus3 (private) |
 | Live links | SAF-01: https://instant-crystal-wnj8dit-islams-projects-5b27661f.vercel.app/ <br> AGR-03: https://fast-dune-d4l8zrv-islams-projects-5b27661f.vercel.app/ |
 | Diagrams | `Islam_Sherif_Interactive_Books_Diagrams.pdf`, submitted with this document. It contains 9 diagrams, one per page. This text refers to them as Diagram 1–9. |
 
@@ -167,6 +168,7 @@ Each demo is an Interactive Book page shown as a 3D world:
 |---|---|
 | Extinguisher Drill | The first prototype. SAF-01 was built from it. |
 | Oil pumpjack explorer | Explore a machine: rotate it, take it apart, cut it open, follow a guided tour |
+| Situation 5: Starbucks marketing strategy (SYRA-EDU-BUS-03) | A 3D marketing-strategy situation for MBA/MPA students, in a separate repository: https://github.com/islams1/starbucks-test-bus3 (private). Live: https://third-place-bus3.vercel.app/. It is **not reverse-engineered in this document**. Facts from its README: Three.js, dialogue in `data/lines.ar.json`, voices from Microsoft neural TTS with word timings, scenes S1→S8, endings E1–E4, Playwright tests. |
 
 ---
 
@@ -865,6 +867,7 @@ The voice IDs are ElevenLabs preset voices, which are public identifiers. No API
 | SAF-01 The Wrong Extinguisher | https://instant-crystal-wnj8dit-islams-projects-5b27661f.vercel.app/ | Public (HTTP 200 on 15 Nov 2026). Same file as the source. |
 | AGR-03 The Wilting Tomato | https://fast-dune-d4l8zrv-islams-projects-5b27661f.vercel.app/ | Public (HTTP 200 on 15 Nov 2026). Same file as the source. |
 | AQ-01 Still in Lane Four | — | Not deployed; run it locally |
+| Situation 5: Starbucks (separate repository) | https://third-place-bus3.vercel.app/ | Public (HTTP 200 on 15 Nov 2026) |
 
 How to open them:
 - Use a desktop browser (Chrome or Edge), with keyboard and mouse.
@@ -917,6 +920,8 @@ Then open http://127.0.0.1:8770/pumpjack/.
 - **Optional (BUS-03):** the Vercel CLI uploads the project folder directly. A `.vercelignore` file leaves out the tools, the test page and the key files (`.env`).
 
 ### 9.4 Source code repository
+
+> **Second repository:** Situation 5 (Starbucks) is in a separate private repository, https://github.com/islams1/starbucks-test-bus3. Access works the same way. Run instructions are in its README (`python tools/devserver.py 8777`).
 
 > **Repository:** https://github.com/islams1/interactive-books-3d-demos (private).
 >
